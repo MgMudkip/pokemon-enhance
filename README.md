@@ -2,6 +2,9 @@
 
 검강화하기 스타일을 포켓몬으로 옮긴 단일파일 클릭커 게임. 외부 의존성 없음. **모바일 완전 대응.**
 
+- 🎮 플레이: https://mgmudkip.github.io/pokemon-enhance/
+- 📦 리포: https://github.com/MgMudkip/pokemon-enhance
+
 ## 실행
 
 ```bash
