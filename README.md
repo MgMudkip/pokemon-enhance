@@ -1,6 +1,9 @@
 # 포켓몬 강화하기 🔨⚡
 
-검강화하기 스타일을 포켓몬으로 옮긴 단일파일 클릭커 게임. 외부 의존성 없음. **모바일 완전 대응.**
+검강화하기 스타일을 포켓몬으로 옮긴 단일파일 클릭커 게임. **모바일 완전 대응.**
+
+> 이미지: PokeAPI 공식 아트워크 사용 (©Nintendo/Creatures Inc./GAME FREAK, 팬 메이드).
+> 나무위키는 핫링크를 차단해서 직접 쓸 수 없어, 같은 공식 아트워크를 안정적으로 제공하는 PokeAPI로 연결했다.
 
 - 🎮 플레이: https://mgmudkip.github.io/pokemon-enhance/
 - 📦 리포: https://github.com/MgMudkip/pokemon-enhance

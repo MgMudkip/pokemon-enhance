@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#1a1b3a">
+<link rel="preconnect" href="https://raw.githubusercontent.com">
 <title>포켓몬 강화하기 — 진화 시스템</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -40,7 +41,11 @@
   .stage{position:relative;height:196px;display:flex;align-items:center;justify-content:center;margin:4px 0}
   #mon{width:170px;height:170px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55));
     transition:transform .15s;transform-origin:center}
-  #mon svg{width:100%;height:100%;display:block}
+  #mon img{width:100%;height:100%;display:block;object-fit:contain;animation:floaty 3s ease-in-out infinite}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .img-missing{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:64px;font-weight:900;color:rgba(255,255,255,.5)}
+  .img-missing span{font-size:12px}
   #mon.boost{transform:scale(1.12)}
   .aura{position:absolute;width:200px;height:200px;border-radius:50%;filter:blur(2px);
     opacity:.55;pointer-events:none;transition:all .3s}
@@ -125,12 +130,12 @@
     padding:10px 6px;color:#fff;cursor:pointer;touch-action:manipulation}
   .mon-grid button.sel{border-color:#ffd76a;background:rgba(255,215,106,.12)}
   .mon-grid .e{height:64px}
-  .mon-grid .e svg{width:64px;height:64px}
+  .mon-grid .e img{width:64px;height:64px;object-fit:contain}
   .mon-grid b{display:block;font-size:14px;margin-top:2px}
   .mon-grid small{font-size:11px;color:#aab1e6;line-height:1.5;display:block}
   .dex-row{display:flex;gap:4px;justify-content:center;margin-top:6px}
   .dex-row span{width:34px;height:34px;border-radius:8px;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .dex-row span svg{width:30px;height:30px}
+  .dex-row span img{width:30px;height:30px;object-fit:contain}
   .dex-row span.locked{filter:brightness(0);opacity:.5}
   #close-modal{width:100%;margin-top:10px;min-height:48px;border-radius:12px;border:none;
     background:#ffd76a;font-weight:900;font-size:15px;cursor:pointer}
@@ -188,7 +193,7 @@
   </div>
 
   <div id="log"></div>
-  <footer>+7 1차 진화 · +16 2차 진화 · 진화하면 CP×·판매가↑ · 도감 18종 수집<br>Space=강화 · H=사냥 · S=판매 · 모바일 진동·사운드 지원</footer>
+  <footer>+7 1차 진화 · +16 2차 진화 · 진화하면 CP×·판매가↑ · 도감 18종 수집<br>Space=강화 · H=사냥 · S=판매 · 모바일 진동·사운드 지원<br>이미지: PokeAPI 공식 아트워크 ©Nintendo/Creatures Inc./GAME FREAK (팬 메이드)</footer>
 </div>
 
 <div id="toast"></div>
@@ -222,185 +227,28 @@ const EVO_SELL = [1, 1.3, 1.8];       // 단계별 판매 배율
 const stageOf = lv => lv >= EVO_AT[1] ? 2 : lv >= EVO_AT[0] ? 1 : 0;
 
 const MONS = [
-  {id:'pika', evos:['피츄','피카츄','라이츄'], base:120, costMul:1.0, bonus:0,  sellMul:1.0, desc:'밸런스 · 전기쥐'},
-  {id:'pari', evos:['파이리','리자드','리자몽'], base:110, costMul:0.9, bonus:-3, sellMul:1.2, desc:'공격 · 판매↑ 확률↓'},
-  {id:'kko',  evos:['꼬부기','어니부기','거북왕'], base:130, costMul:1.1, bonus:5,  sellMul:1.0, desc:'방어 · 확률+5%'},
-  {id:'iss',  evos:['이상해씨','이상해풀','이상해꽃'], base:125, costMul:1.2, bonus:8,  sellMul:0.9, desc:'안정 · 확률+8%'},
-  {id:'eve',  evos:['이브이','샤미드','님피아'], base:100, costMul:0.85,bonus:0,  sellMul:1.1, desc:'초보추천 · 저렴'},
-  {id:'mew',  evos:['뮤','뮤츠','메가뮤츠'], base:300, costMul:1.5, bonus:-10,sellMul:2.0, desc:'도박 · 판매 2배 확률↓'},
+  {id:'pika', evos:['피츄','피카츄','라이츄'], ids:[172,25,26], base:120, costMul:1.0, bonus:0,  sellMul:1.0, desc:'밸런스 · 전기쥐'},
+  {id:'pari', evos:['파이리','리자드','리자몽'], ids:[4,5,6], base:110, costMul:0.9, bonus:-3, sellMul:1.2, desc:'공격 · 판매↑ 확률↓'},
+  {id:'kko',  evos:['꼬부기','어니부기','거북왕'], ids:[7,8,9], base:130, costMul:1.1, bonus:5,  sellMul:1.0, desc:'방어 · 확률+5%'},
+  {id:'iss',  evos:['이상해씨','이상해풀','이상해꽃'], ids:[1,2,3], base:125, costMul:1.2, bonus:8,  sellMul:0.9, desc:'안정 · 확률+8%'},
+  {id:'eve',  evos:['이브이','샤미드','님피아'], ids:[133,134,700], base:100, costMul:0.85,bonus:0,  sellMul:1.1, desc:'초보추천 · 저렴'},
+  {id:'mew',  evos:['뮤','뮤츠','메가뮤츠Y'], ids:[151,150,10044], base:300, costMul:1.5, bonus:-10,sellMul:2.0, desc:'도박 · 판매 2배 확률↓'},
 ];
 
-/* ===== SVG 캐릭터 (6종 × 3단계, 인라인 오리지널 아트) ===== */
-function eyes(cx, cy, dx, r){
-  return `<ellipse cx="${cx-dx}" cy="${cy}" rx="${r}" ry="${r*1.25}" fill="#fff" stroke="#222" stroke-width="2"/>`+
-  `<ellipse cx="${cx+dx}" cy="${cy}" rx="${r}" ry="${r*1.25}" fill="#fff" stroke="#222" stroke-width="2"/>`+
-  `<circle cx="${cx-dx+2}" cy="${cy+2}" r="${r*0.55}" fill="#222"/>`+
-  `<circle cx="${cx+dx+2}" cy="${cy+2}" r="${r*0.55}" fill="#222"/>`+
-  `<circle cx="${cx-dx+3.5}" cy="${cy}" r="${r*0.2}" fill="#fff"/>`+
-  `<circle cx="${cx+dx+3.5}" cy="${cy}" r="${r*0.2}" fill="#fff"/>`;
+/* ===== 포켓몬 이미지 (PokeAPI 공식 아트워크, ©Nintendo/Creatures/GAME FREAK) ===== */
+const ART = pid => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pid}.png`;
+const PIXEL = pid => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pid}.png`;
+function imgFallback(el, pid){
+  if(!el.dataset.fb1){ el.dataset.fb1='1'; el.src=PIXEL(pid); }
+  else{ el.onerror=null; el.outerHTML=`<div class="img-missing">?<span>No.${pid}</span></div>`; }
 }
-function blush(cx, cy, dx){
-  return `<ellipse cx="${cx-dx}" cy="${cy}" rx="9" ry="6" fill="#ff8a8a" opacity=".7"/>`+
-         `<ellipse cx="${cx+dx}" cy="${cy}" rx="9" ry="6" fill="#ff8a8a" opacity=".7"/>`;
-}
-const ground = `<ellipse cx="100" cy="172" rx="52" ry="10" fill="#000" opacity=".3"/>`;
-
-function svgPika(st){
-  const s = [0.85, 1, 1.18][st];
-  const earL = [26, 34, 42][st];
-  const cheek = [9, 12, 14][st];
-  return `<svg viewBox="0 0 200 200">
-  ${ground}
-  <polygon points="88,${86-earL} 74,44 96,70" fill="#FFD93B" stroke="#8a6d00" stroke-width="3" stroke-linejoin="round"/>
-  <polygon points="112,${86-earL} 126,44 104,70" fill="#FFD93B" stroke="#8a6d00" stroke-width="3" stroke-linejoin="round"/>
-  <polygon points="82,62 74,44 86,54" fill="#222"/><polygon points="118,62 126,44 114,54" fill="#222"/>
-  <polygon points="150,120 168,108 160,128 176,124 158,142 140,132" fill="#c98a00" stroke="#8a6d00" stroke-width="3" stroke-linejoin="round"/>
-  <ellipse cx="100" cy="128" rx="${46*s}" ry="${42*s}" fill="#FFD93B" stroke="#8a6d00" stroke-width="3"/>
-  <ellipse cx="100" cy="146" rx="${26*s}" ry="${20*s}" fill="#FFF3C4"/>
-  ${st>=1?'<rect x="76" y="100" width="10" height="22" rx="5" fill="#8a5a00"/><rect x="114" y="100" width="10" height="22" rx="5" fill="#8a5a00"/>':''}
-  <circle cx="${100-30*s}" cy="128" r="${cheek}" fill="#FF3B3B" stroke="#a00" stroke-width="2"/>
-  <circle cx="${100+30*s}" cy="128" r="${cheek}" fill="#FF3B3B" stroke="#a00" stroke-width="2"/>
-  ${eyes(100,112,17,10)}${blush(100,128,26)}
-  <path d="M94 132 Q100 138 106 132" stroke="#7a4d00" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  ${st>=2?'<polygon points="100,60 108,74 100,70 92,74" fill="#fff" opacity=".9"/>':''}
-  </svg>`;
-}
-function svgPari(st){
-  const s=[0.85,1,1.2][st];
-  const flame=[[0,0,1],[0,0,1.25],[0,0,1.6]][st][2];
-  return `<svg viewBox="0 0 200 200">${ground}
-  ${st>=2?'<polygon points="66,110 30,84 52,116" fill="#4FD1C5" stroke="#1d7a72" stroke-width="3" stroke-linejoin="round"/><polygon points="134,110 170,84 148,116" fill="#4FD1C5" stroke="#1d7a72" stroke-width="3" stroke-linejoin="round"/>':''}
-  <ellipse cx="138" cy="140" rx="10" ry="22" fill="#FF9F43" stroke="#a35400" stroke-width="3"/>
-  <g transform="translate(138,112) scale(${flame})">
-    <path d="M0,-26 C14,-12 12,4 0,12 C-12,4 -14,-12 0,-26" fill="#FF5A00" stroke="#a32e00" stroke-width="2"/>
-    <path d="M0,-14 C7,-6 6,3 0,7 C-6,3 -7,-6 0,-14" fill="#FFD93B"/>
-  </g>
-  <ellipse cx="96" cy="132" rx="${42*s}" ry="${40*s}" fill="#FF9F43" stroke="#a35400" stroke-width="3"/>
-  <ellipse cx="96" cy="150" rx="${24*s}" ry="${18*s}" fill="#FFE8C2"/>
-  <circle cx="96" cy="96" r="${30*s}" fill="#FF9F43" stroke="#a35400" stroke-width="3"/>
-  ${st>=1?'<polygon points="88,70 94,56 98,70" fill="#FFE8C2" stroke="#a35400" stroke-width="2"/><polygon points="104,70 110,56 114,70" fill="#FFE8C2" stroke="#a35400" stroke-width="2"/>':''}
-  ${st>=2?'<polygon points="80,72 70,58 84,64" fill="#fff" stroke="#a35400" stroke-width="2"/><polygon points="112,72 122,58 108,64" fill="#fff" stroke="#a35400" stroke-width="2"/>':''}
-  <ellipse cx="86" cy="92" rx="3" ry="2" fill="#7a3a00"/><ellipse cx="106" cy="92" rx="3" ry="2" fill="#7a3a00"/>
-  ${eyes(96,102,15,9)}${blush(96,116,24)}
-  <path d="M90 118 Q96 123 102 118" stroke="#7a3a00" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  </svg>`;
-}
-function svgKko(st){
-  const s=[0.85,1,1.2][st];
-  return `<svg viewBox="0 0 200 200">${ground}
-  <path d="M140,130 q18,-4 14,10 q-4,12 -18,8" fill="none" stroke="#5AA2FF" stroke-width="7" stroke-linecap="round"/>
-  <ellipse cx="92" cy="136" rx="${40*s}" ry="${36*s}" fill="#8a5a1e" stroke="#5c3a0e" stroke-width="3"/>
-  <ellipse cx="92" cy="136" rx="${30*s}" ry="${26*s}" fill="#C98F3B"/>
-  <ellipse cx="92" cy="136" rx="${20*s}" ry="${16*s}" fill="#E8C37A"/>
-  ${st>=2?'<rect x="56" y="100" width="20" height="14" rx="6" fill="#9aa2ad" stroke="#4a4f57" stroke-width="2.5" transform="rotate(-20 66 107)"/><rect x="108" y="100" width="20" height="14" rx="6" fill="#9aa2ad" stroke="#4a4f57" stroke-width="2.5" transform="rotate(20 118 107)"/><circle cx="58" cy="107" r="5" fill="#333"/><circle cx="126" cy="107" r="5" fill="#333"/>':''}
-  <circle cx="96" cy="86" r="${30*s}" fill="#6AB0FF" stroke="#2a5fa8" stroke-width="3"/>
-  ${st>=1?'<ellipse cx="68" cy="84" rx="8" ry="12" fill="#6AB0FF" stroke="#2a5fa8" stroke-width="2.5" transform="rotate(-25 68 84)"/><ellipse cx="124" cy="84" rx="8" ry="12" fill="#6AB0FF" stroke="#2a5fa8" stroke-width="2.5" transform="rotate(25 124 84)"/>':''}
-  ${eyes(96,86,15,9)}${blush(96,100,24)}
-  <path d="M90 102 Q96 107 102 102" stroke="#174a85" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  <ellipse cx="96" cy="128" rx="20" ry="12" fill="#FFF3D6"/>
-  </svg>`;
-}
-function svgIss(st){
-  const s=[0.85,1,1.18][st];
-  const bulb = st===0
-    ? `<ellipse cx="100" cy="66" rx="20" ry="16" fill="#3E8E4D" stroke="#1d4d27" stroke-width="3"/><path d="M100,52 L100,40 M92,56 L86,48 M108,56 L114,48" stroke="#1d4d27" stroke-width="3" stroke-linecap="round"/>`
-    : st===1
-    ? `<ellipse cx="100" cy="62" rx="24" ry="20" fill="#2E7D46" stroke="#1d4d27" stroke-width="3"/><ellipse cx="100" cy="58" rx="12" ry="14" fill="#F48FB1" stroke="#a34d68" stroke-width="2.5"/>`
-    : `<g><ellipse cx="76" cy="58" rx="14" ry="10" fill="#E84545" stroke="#8e1f1f" stroke-width="2.5" transform="rotate(-25 76 58)"/><ellipse cx="124" cy="58" rx="14" ry="10" fill="#E84545" stroke="#8e1f1f" stroke-width="2.5" transform="rotate(25 124 58)"/><ellipse cx="100" cy="50" rx="14" ry="12" fill="#FF6B6B" stroke="#8e1f1f" stroke-width="2.5"/><circle cx="100" cy="50" r="9" fill="#FFD93B" stroke="#8e6d00" stroke-width="2.5"/></g>`;
-  return `<svg viewBox="0 0 200 200">${ground}${bulb}
-  <polygon points="72,84 60,60 84,72" fill="#5FC9A7" stroke="#2a7a5f" stroke-width="3" stroke-linejoin="round"/>
-  <polygon points="128,84 140,60 116,72" fill="#5FC9A7" stroke="#2a7a5f" stroke-width="3" stroke-linejoin="round"/>
-  <ellipse cx="100" cy="130" rx="${44*s}" ry="${38*s}" fill="#5FC9A7" stroke="#2a7a5f" stroke-width="3"/>
-  <ellipse cx="84" cy="122" rx="7" ry="9" fill="#2a7a5f"/><ellipse cx="118" cy="136" rx="7" ry="9" fill="#2a7a5f"/><ellipse cx="106" cy="148" rx="6" ry="8" fill="#2a7a5f"/>
-  <ellipse cx="100" cy="150" rx="22" ry="15" fill="#E8F7EF"/>
-  ${eyes(100,112,17,10)}${blush(100,126,26)}
-  <path d="M93 128 Q100 134 107 128" stroke="#1d5c44" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-  </svg>`;
-}
-function svgEve(st){
-  if(st===0) return `<svg viewBox="0 0 200 200">${ground}
-    <polygon points="70,80 58,38 90,64" fill="#C98F5A" stroke="#7a4d21" stroke-width="3" stroke-linejoin="round"/>
-    <polygon points="130,80 142,38 110,64" fill="#C98F5A" stroke="#7a4d21" stroke-width="3" stroke-linejoin="round"/>
-    <polygon points="70,72 64,48 80,62" fill="#F4A7C3"/><polygon points="130,72 136,48 120,62" fill="#F4A7C3"/>
-    <ellipse cx="142" cy="142" rx="18" ry="12" fill="#C98F5A" stroke="#7a4d21" stroke-width="3" transform="rotate(25 142 142)"/>
-    <ellipse cx="150" cy="148" rx="9" ry="7" fill="#FFF3D6"/>
-    <ellipse cx="100" cy="132" rx="42" ry="36" fill="#C98F5A" stroke="#7a4d21" stroke-width="3"/>
-    <path d="M66,124 L80,118 L74,130 L88,128 L80,138 L94,140" fill="#FFF3D6" stroke="#7a4d21" stroke-width="2" stroke-linejoin="round"/>
-    <path d="M134,124 L120,118 L126,130 L112,128 L120,138 L106,140" fill="#FFF3D6" stroke="#7a4d21" stroke-width="2" stroke-linejoin="round"/>
-    ${eyes(100,112,17,10)}${blush(100,126,25)}
-    <polygon points="96,126 104,126 100,131" fill="#5c3a17"/><path d="M100,131 Q100,135 96,136 M100,131 Q100,135 104,136" stroke="#5c3a17" stroke-width="1.8" fill="none"/>
-    </svg>`;
-  if(st===1) return `<svg viewBox="0 0 200 200">${ground}
-    <polygon points="66,80 40,66 58,92" fill="#7AC7FF" stroke="#2a6fa8" stroke-width="3" stroke-linejoin="round"/>
-    <polygon points="134,80 160,66 142,92" fill="#7AC7FF" stroke="#2a6fa8" stroke-width="3" stroke-linejoin="round"/>
-    <polygon points="52,74 40,66 48,80" fill="#fff" opacity=".8"/><polygon points="148,74 160,66 152,80" fill="#fff" opacity=".8"/>
-    <path d="M140,140 q22,2 16,20 q-10,8 -24,0" fill="#7AC7FF" stroke="#2a6fa8" stroke-width="3"/>
-    <path d="M150,142 q12,0 10,10" fill="#fff" opacity=".7"/>
-    <ellipse cx="98" cy="132" rx="42" ry="38" fill="#7AC7FF" stroke="#2a6fa8" stroke-width="3"/>
-    <ellipse cx="98" cy="152" rx="22" ry="14" fill="#fff"/>
-    ${eyes(98,110,17,10)}${blush(98,124,25)}
-    <path d="M92 126 Q98 131 104 126" stroke="#174a75" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    </svg>`;
-  return `<svg viewBox="0 0 200 200">${ground}
-    <polygon points="70,78 58,40 90,62" fill="#FFD6E8" stroke="#b4527d" stroke-width="3" stroke-linejoin="round"/>
-    <polygon points="130,78 142,40 110,62" fill="#FFD6E8" stroke="#b4527d" stroke-width="3" stroke-linejoin="round"/>
-    <ellipse cx="52" cy="120" rx="8" ry="16" fill="#7AC7FF" stroke="#2a6fa8" stroke-width="2.5"/>
-    <ellipse cx="148" cy="120" rx="8" ry="16" fill="#F4A7C3" stroke="#b4527d" stroke-width="2.5"/>
-    <circle cx="52" cy="138" r="8" fill="#4FA3FF" stroke="#2a6fa8" stroke-width="2"/><circle cx="148" cy="138" r="8" fill="#FF6BA3" stroke="#b4527d" stroke-width="2"/>
-    <ellipse cx="142" cy="146" rx="16" ry="11" fill="#FFD6E8" stroke="#b4527d" stroke-width="3"/>
-    <ellipse cx="100" cy="132" rx="42" ry="38" fill="#FFF5FA" stroke="#b4527d" stroke-width="3"/>
-    <polygon points="100,140 112,146 100,152 88,146" fill="#FF6BA3" stroke="#b4527d" stroke-width="2"/>
-    <ellipse cx="100" cy="110" rx="11" ry="13" fill="#4FA3FF" stroke="#2a4d8f" stroke-width="2"/><ellipse cx="100" cy="110" rx="11" ry="13" fill="none" stroke="#2a4d8f" stroke-width="0"/>
-    ${eyes(100,110,18,10)}
-    <circle cx="82" cy="108" r="4" fill="#4FA3FF"/><circle cx="118" cy="108" r="4" fill="#4FA3FF"/>
-    ${blush(100,124,26)}
-    <path d="M94 126 Q100 131 106 126" stroke="#8e2f56" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-    </svg>`;
-}
-function svgMew(st){
-  if(st===0) return `<svg viewBox="0 0 200 200">${ground}
-    <path d="M136,128 q26,-6 22,-30" fill="none" stroke="#FF9DC6" stroke-width="8" stroke-linecap="round"/>
-    <circle cx="160" cy="94" r="9" fill="#FF9DC6" stroke="#c25a8a" stroke-width="2.5"/>
-    <ellipse cx="98" cy="130" rx="36" ry="34" fill="#FFB3D9" stroke="#c25a8a" stroke-width="3"/>
-    <ellipse cx="70" cy="118" rx="10" ry="16" fill="#FFB3D9" stroke="#c25a8a" stroke-width="2.5" transform="rotate(-20 70 118)"/>
-    <ellipse cx="126" cy="118" rx="10" ry="16" fill="#FFB3D9" stroke="#c25a8a" stroke-width="2.5" transform="rotate(20 126 118)"/>
-    <ellipse cx="98" cy="92" rx="26" ry="24" fill="#FFB3D9" stroke="#c25a8a" stroke-width="3"/>
-    <ellipse cx="86" cy="90" rx="8" ry="11" fill="#4FA3FF" stroke="#1d3f7a" stroke-width="2"/>
-    <ellipse cx="110" cy="90" rx="8" ry="11" fill="#4FA3FF" stroke="#1d3f7a" stroke-width="2"/>
-    <circle cx="88" cy="88" r="3" fill="#fff"/><circle cx="112" cy="88" r="3" fill="#fff"/>
-    ${blush(98,104,20)}
-    <path d="M93 104 Q98 108 103 104" stroke="#8e2f56" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-    </svg>`;
-  if(st===1) return `<svg viewBox="0 0 200 200">${ground}
-    <path d="M128,140 q30,4 26,-28 q-2,-16 -14,-22" fill="none" stroke="#C9B8FF" stroke-width="9" stroke-linecap="round"/>
-    <ellipse cx="98" cy="140" rx="30" ry="30" fill="#D8CCFF" stroke="#6a5aa8" stroke-width="3"/>
-    <ellipse cx="76" cy="128" rx="8" ry="14" fill="#D8CCFF" stroke="#6a5aa8" stroke-width="2.5"/>
-    <ellipse cx="120" cy="128" rx="8" ry="14" fill="#D8CCFF" stroke="#6a5aa8" stroke-width="2.5"/>
-    <ellipse cx="98" cy="88" rx="26" ry="32" fill="#D8CCFF" stroke="#6a5aa8" stroke-width="3"/>
-    <path d="M98,58 q-4,-22 -16,-30 M98,58 q4,-22 16,-30" stroke="#6a5aa8" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <ellipse cx="88" cy="88" rx="6" ry="9" fill="#5a3fa8"/><ellipse cx="108" cy="88" rx="6" ry="9" fill="#5a3fa8"/>
-    <circle cx="90" cy="86" r="2" fill="#fff"/><circle cx="110" cy="86" r="2" fill="#fff"/>
-    <path d="M92 108 Q98 112 104 108" stroke="#4a357a" stroke-width="2.2" fill="none"/>
-    </svg>`;
-  return `<svg viewBox="0 0 200 200">${ground}
-    <path d="M126,142 q34,6 30,-30 q-2,-18 -16,-24" fill="none" stroke="#B8A6FF" stroke-width="12" stroke-linecap="round"/>
-    <ellipse cx="98" cy="142" rx="32" ry="30" fill="#C9B8FF" stroke="#4a357a" stroke-width="3.5"/>
-    <path d="M70,120 L58,100 L76,108 M126,120 L138,100 L120,108" stroke="#4a357a" stroke-width="4" stroke-linecap="round"/>
-    <ellipse cx="98" cy="86" rx="28" ry="34" fill="#C9B8FF" stroke="#4a357a" stroke-width="3.5"/>
-    <path d="M98,54 q-6,-26 -20,-34 M98,54 q6,-26 20,-34 M84,60 q-10,-8 -18,-10 M112,60 q10,-8 18,-10" stroke="#4a357a" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <ellipse cx="87" cy="86" rx="7" ry="10" fill="#00E5FF" stroke="#0a5a6a" stroke-width="2"/>
-    <ellipse cx="109" cy="86" rx="7" ry="10" fill="#00E5FF" stroke="#0a5a6a" stroke-width="2"/>
-    <path d="M90 108 Q98 114 106 108" stroke="#2a1d4d" stroke-width="2.5" fill="none"/>
-    <circle cx="98" cy="128" r="6" fill="#00E5FF" opacity=".8"/>
-    </svg>`;
+function monImg(id, st, alt){
+  const pid = MONS.find(m=>m.id===id).ids[st];
+  return `<img src="${ART(pid)}" alt="${alt||''}" draggable="false" loading="lazy" onerror="imgFallback(this,${pid})"/>`;
 }
 function monSVG(id, st){
-  if(id==='pika') return svgPika(st);
-  if(id==='pari') return svgPari(st);
-  if(id==='kko') return svgKko(st);
-  if(id==='iss') return svgIss(st);
-  if(id==='eve') return svgEve(st);
-  return svgMew(st);
+  const m = MONS.find(m=>m.id===id);
+  return monImg(id, st, m.evos[st]);
 }
 
 /* ===== 공식 ===== */
@@ -528,7 +376,7 @@ function render(){
   $('best').textContent='+'+S.best;
   $('lv').textContent='+'+lv;
   $('pity').textContent=(S.pity>=2&&lv<MAX_LV)?`(자비 +${pityBonus}%)`:'';
-  $('mon-name').textContent=curName()+(lv>=30?' · MAX':'')+`  [${st+1}단계]`;
+  $('mon-name').textContent=`No.${String(m.ids[st]).padStart(3,'0')} ${curName()}`+(lv>=30?' · MAX':'')+`  [${st+1}단계]`;
   $('evo-line').innerHTML = m.evos.map((n,i)=> i===st?`<b>${n}</b>`:`${n}`).join(' → ');
   $('cp').textContent=`CP ${fmt(cpOf(lv,m))} · ${m.desc} · 진화보정 ×${EVO_MULT[st]}`;
   const hint=$('evo-hint');
