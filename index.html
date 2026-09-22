@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#1a1b3a">
-<title>포켓몬 강화하기 — 검강화 스타일</title>
+<title>포켓몬 강화하기 — 진화 시스템</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html{-webkit-text-size-adjust:100%}
@@ -17,14 +17,12 @@
   #app{width:100%;max-width:480px;min-height:100dvh;display:flex;flex-direction:column;
     padding:calc(10px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
     gap:10px}
-  /* 상단바 */
   .topbar{display:flex;gap:8px;align-items:stretch}
   .pill{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);
     border-radius:14px;padding:8px 10px;text-align:center;backdrop-filter:blur(6px)}
   .pill small{display:block;font-size:11px;color:#ffd76a;letter-spacing:1px;font-weight:700}
   .pill b{font-size:17px;font-variant-numeric:tabular-nums}
   #best-pill b{color:#7dffb2}
-  /* 몬스터 카드 */
   .card{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.04));
     border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:14px 12px 12px;
     text-align:center;position:relative;overflow:hidden}
@@ -32,13 +30,19 @@
     padding:4px 10px;border-radius:999px;margin-bottom:6px;border:1px solid}
   .lv{font-size:clamp(22px,6vw,28px);font-weight:900;letter-spacing:.5px}
   .lv small{font-size:14px;color:#ffd76a}
-  .mon-name{font-size:15px;color:#dfe3ff;margin-top:2px}
+  .mon-name{font-size:16px;color:#fff;margin-top:2px;font-weight:800}
+  .evo-line{font-size:12px;color:#aab1e6;margin-top:2px}
+  .evo-line b{color:#ffd76a}
   .cp{font-size:13px;color:#9ef0ff;margin-top:2px;font-variant-numeric:tabular-nums}
-  .stage{position:relative;height:172px;display:flex;align-items:center;justify-content:center;margin:4px 0}
-  #mon{font-size:104px;line-height:1;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55));
+  .evo-hint{display:inline-block;margin-top:6px;font-size:12px;font-weight:700;color:#062b1a;
+    background:linear-gradient(90deg,#7dffb2,#d4ff4f);border-radius:999px;padding:4px 12px}
+  .evo-hint.max{background:linear-gradient(90deg,#ffd76a,#ff9800);color:#3a2200}
+  .stage{position:relative;height:196px;display:flex;align-items:center;justify-content:center;margin:4px 0}
+  #mon{width:170px;height:170px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.55));
     transition:transform .15s;transform-origin:center}
+  #mon svg{width:100%;height:100%;display:block}
   #mon.boost{transform:scale(1.12)}
-  .aura{position:absolute;width:190px;height:190px;border-radius:50%;filter:blur(2px);
+  .aura{position:absolute;width:200px;height:200px;border-radius:50%;filter:blur(2px);
     opacity:.55;pointer-events:none;transition:all .3s}
   .stars{position:absolute;top:8px;right:10px;font-size:15px;letter-spacing:2px}
   .shake{animation:shake .45s}
@@ -48,7 +52,8 @@
   @keyframes jump{0%{transform:scale(1)}30%{transform:scale(1.25) translateY(-14px)}60%{transform:scale(.95)}100%{transform:scale(1)}}
   .break-anim{animation:brk .6s}
   @keyframes brk{0%{transform:scale(1);filter:grayscale(0)}50%{transform:scale(1.2) rotate(8deg);filter:grayscale(1) brightness(.4)}100%{transform:scale(.6);opacity:.4}}
-  /* 확률바 */
+  .evolving{animation:evoShake .12s infinite}
+  @keyframes evoShake{0%{transform:translate(-4px,2px) scale(1)}50%{transform:translate(4px,-2px) scale(1.06)}100%{transform:translate(-3px,-2px) scale(1.03)}}
   .prob-row{display:flex;justify-content:space-between;font-size:13px;color:#cdd3ff;margin:6px 2px 4px}
   .prob-row b{color:#fff}
   .bar{height:10px;background:rgba(0,0,0,.45);border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.15)}
@@ -58,7 +63,6 @@
   .sub-info div{flex:1;background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.1);
     border-radius:12px;padding:7px 4px;font-size:12px;line-height:1.5}
   .sub-info b{display:block;font-size:14px;color:#ffe27a;font-variant-numeric:tabular-nums}
-  /* 버튼 */
   #enhance-btn{
     width:100%;min-height:68px;border:none;border-radius:18px;font-size:20px;font-weight:900;letter-spacing:1px;
     color:#3a2200;background:linear-gradient(180deg,#ffe45e,#ffb300);
@@ -82,18 +86,16 @@
     background:rgba(0,0,0,.3);color:#dfe3ff;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation}
   .util-row button.on{background:#7c5cff;color:#fff;border-color:#7c5cff}
   .util-row button:active{transform:scale(.97)}
-  /* 스탯 + 로그 */
   .stats{display:flex;gap:6px;font-size:11px;color:#aab1e6;text-align:center}
   .stats div{flex:1;background:rgba(0,0,0,.25);border-radius:10px;padding:6px 2px}
   .stats b{display:block;color:#fff;font-size:13px}
   #log{background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:14px;
     padding:8px 10px;min-height:96px;max-height:150px;overflow:hidden;font-size:13px;line-height:1.7}
   #log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ok{color:#5dff8a}.fail{color:#ff7b7b}.dest{color:#ff3b3b;font-weight:900}.gold{color:#ffd76a}.info{color:#9ef0ff}
-  /* 결과 토스트 */
+  .ok{color:#5dff8a}.fail{color:#ff7b7b}.dest{color:#ff3b3b;font-weight:900}.gold{color:#ffd76a}.info{color:#9ef0ff}.evo{color:#e040fb;font-weight:800}
   #toast{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(.8);z-index:50;
-    font-size:clamp(30px,9vw,52px);font-weight:900;opacity:0;pointer-events:none;
-    text-shadow:0 4px 0 rgba(0,0,0,.5),0 0 30px currentColor;transition:all .18s;white-space:nowrap}
+    font-size:clamp(26px,8vw,46px);font-weight:900;opacity:0;pointer-events:none;
+    text-shadow:0 4px 0 rgba(0,0,0,.5),0 0 30px currentColor;transition:all .18s;white-space:nowrap;text-align:center}
   #toast.show{opacity:1;transform:translate(-50%,-50%) scale(1.1)}
   #flash{position:fixed;inset:0;z-index:40;pointer-events:none;opacity:0;background:#fff;transition:opacity .25s}
   .float{position:fixed;z-index:60;font-weight:900;font-size:20px;pointer-events:none;
@@ -101,25 +103,39 @@
   @keyframes floatup{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-70px)}}
   .confetti{position:fixed;top:30%;z-index:60;width:9px;height:14px;pointer-events:none;animation:fall 1.1s forwards}
   @keyframes fall{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(220px) rotate(540deg)}}
-  /* 모달 */
+  /* 진화 연출 오버레이 */
+  #evo-overlay{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 45%, #fff 0%, #ffe9a8 25%, #7c5cff 65%, #0e0f24 100%);text-align:center;padding:20px}
+  #evo-overlay.open{display:flex}
+  #evo-overlay .evo-msg{font-size:20px;font-weight:900;color:#3a2200;text-shadow:0 2px 0 #fff;margin-bottom:10px}
+  #evo-overlay .evo-name{font-size:30px;font-weight:900;color:#fff;text-shadow:0 3px 0 #7c5cff,0 0 24px #fff;margin-top:10px}
+  #evo-big{width:min(64vw,260px);height:min(64vw,260px)}
+  #evo-big svg{width:100%;height:100%}
+  #evo-flash{animation:evoFlash .35s infinite}
+  @keyframes evoFlash{0%,100%{filter:brightness(1)}50%{filter:brightness(1.8)}}
   #modal{position:fixed;inset:0;z-index:70;background:rgba(5,6,20,.75);display:none;
     align-items:center;justify-content:center;padding:18px}
   #modal.open{display:flex}
   .sheet{width:100%;max-width:440px;background:#22244d;border:1px solid rgba(255,255,255,.2);
     border-radius:20px;padding:16px;max-height:84dvh;overflow:auto}
-  .sheet h2{font-size:17px;margin-bottom:4px}
+  .sheet h2{font-size:16px;margin-bottom:4px}
   .sheet p{font-size:12px;color:#aab1e6;margin-bottom:10px;line-height:1.6}
   .mon-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .mon-grid button{background:rgba(255,255,255,.07);border:2px solid transparent;border-radius:14px;
     padding:10px 6px;color:#fff;cursor:pointer;touch-action:manipulation}
   .mon-grid button.sel{border-color:#ffd76a;background:rgba(255,215,106,.12)}
-  .mon-grid .e{font-size:40px}
+  .mon-grid .e{height:64px}
+  .mon-grid .e svg{width:64px;height:64px}
   .mon-grid b{display:block;font-size:14px;margin-top:2px}
-  .mon-grid small{font-size:11px;color:#aab1e6;line-height:1.4;display:block}
+  .mon-grid small{font-size:11px;color:#aab1e6;line-height:1.5;display:block}
+  .dex-row{display:flex;gap:4px;justify-content:center;margin-top:6px}
+  .dex-row span{width:34px;height:34px;border-radius:8px;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .dex-row span svg{width:30px;height:30px}
+  .dex-row span.locked{filter:brightness(0);opacity:.5}
   #close-modal{width:100%;margin-top:10px;min-height:48px;border-radius:12px;border:none;
     background:#ffd76a;font-weight:900;font-size:15px;cursor:pointer}
   footer{font-size:11px;color:#7c83b8;text-align:center;line-height:1.6}
-  @media (min-width:520px){ #mon{font-size:120px} .stage{height:190px} }
+  @media (min-width:520px){ #mon{width:190px;height:190px} .stage{height:210px} }
 </style>
 </head>
 <body>
@@ -132,11 +148,13 @@
   <div class="card">
     <span class="rank-badge" id="rank">노말</span>
     <div class="lv"><span id="lv">+0</span> <small id="pity"></small></div>
-    <div class="mon-name" id="mon-name">피카츄</div>
+    <div class="mon-name" id="mon-name">피츄</div>
+    <div class="evo-line" id="evo-line"></div>
     <div class="cp" id="cp">CP 120</div>
+    <div><span class="evo-hint" id="evo-hint"></span></div>
     <div class="stage">
       <div class="aura" id="aura"></div>
-      <div id="mon">🐹</div>
+      <div id="mon"></div>
       <div class="stars" id="stars"></div>
     </div>
     <div class="prob-row"><span>성공 확률 <b id="prob-txt">100%</b></span><span>파괴 확률 <b id="dest-txt">0%</b></span></div>
@@ -157,7 +175,7 @@
 
   <div class="util-row">
     <button id="auto-btn">🤖 자동강화 OFF</button>
-    <button id="dex-btn">📖 포켓몬 변경</button>
+    <button id="dex-btn">📖 도감·변경</button>
     <button id="reset-btn">↻ 초기화</button>
   </div>
 
@@ -166,20 +184,28 @@
     <div>성공<b id="st-ok">0</b></div>
     <div>실패<b id="st-fail">0</b></div>
     <div>파괴<b id="st-dest">0</b></div>
-    <div>누적골드<b id="st-gold">0</b></div>
+    <div>진화<b id="st-evo">0</b></div>
   </div>
 
   <div id="log"></div>
-  <footer>검강화 스타일 룰 · 실패하면 하락 / 고강에서 파괴(0강) · 자동저장<br>Space=강화 · H=사냥 · S=판매 · 모바일 진동·사운드 지원</footer>
+  <footer>+7 1차 진화 · +16 2차 진화 · 진화하면 CP×·판매가↑ · 도감 18종 수집<br>Space=강화 · H=사냥 · S=판매 · 모바일 진동·사운드 지원</footer>
 </div>
 
 <div id="toast"></div>
 <div id="flash"></div>
 
+<div id="evo-overlay">
+  <div class="evo-msg" id="evo-msg">어라…?</div>
+  <div id="evo-flash"><div id="evo-big"></div></div>
+  <div class="evo-name" id="evo-name"></div>
+</div>
+
 <div id="modal">
   <div class="sheet">
-    <h2>📖 포켓몬 선택 (판매 후 0강부터)</h2>
-    <p>바꾸면 현재 강화는 <b style="color:#ff8a8a">0강으로 리셋</b>돼요. 대신 보유 골드는 유지!<br>뮤츠는 어렵지만 판매가가 2배, 이상해씨는 안정형.</p>
+    <h2 id="dex-title">📖 포켓몬 도감</h2>
+    <p>바꾸면 현재 강화는 <b style="color:#ff8a8a">0강으로 리셋</b>돼요. 골드는 유지!<br>
+    <b style="color:#ffd76a">+7에서 1차 진화, +16에서 2차 진화.</b> 진화할수록 CP·판매가가 오릅니다.<br>
+    검은 실루엣은 아직 발견 못한 진화형!</p>
     <div class="mon-grid" id="mon-grid"></div>
     <button id="close-modal">닫기</button>
   </div>
@@ -188,16 +214,196 @@
 <script>
 'use strict';
 /* ===== 데이터 ===== */
-const SUCCESS = [100,95,90,85,80,75,70,65,60,55,50,45,40,35,30,28,25,22,20,18,15,13,11,9,7,5,4,3,2,1]; // lv -> lv+1, lv30 MAX
+const SUCCESS = [100,95,90,85,80,75,70,65,60,55,50,45,40,35,30,28,25,22,20,18,15,13,11,9,7,5,4,3,2,1];
 const MAX_LV = 30;
+const EVO_AT = [7, 16];               // 0~6: 0단계, 7~15: 1단계, 16~30: 2단계
+const EVO_MULT = [1, 1.6, 2.5];       // 단계별 CP 배율
+const EVO_SELL = [1, 1.3, 1.8];       // 단계별 판매 배율
+const stageOf = lv => lv >= EVO_AT[1] ? 2 : lv >= EVO_AT[0] ? 1 : 0;
+
 const MONS = [
-  {id:'pika', name:'피카츄', emoji:'🐹', base:120, costMul:1.0, bonus:0,  sellMul:1.0, desc:'밸런스 · 기본'},
-  {id:'eve',  name:'이브이', emoji:'🦊', base:100, costMul:0.85,bonus:0,  sellMul:1.1, desc:'초보추천 · 저렴'},
-  {id:'pari', name:'파이리', emoji:'🦎', base:110, costMul:0.9, bonus:-3, sellMul:1.2, desc:'공격 · 판매↑ 확률↓'},
-  {id:'kko',  name:'꼬부기', emoji:'🐢', base:130, costMul:1.1, bonus:5,  sellMul:1.0, desc:'방어 · 확률+5%'},
-  {id:'iss',  name:'이상해씨',emoji:'🐸',base:125, costMul:1.2, bonus:8,  sellMul:0.9, desc:'안정 · 확률+8%'},
-  {id:'mew',  name:'뮤츠',   emoji:'👾', base:300, costMul:1.5, bonus:-10,sellMul:2.0, desc:'도박 · 판매 2배 확률↓'},
+  {id:'pika', evos:['피츄','피카츄','라이츄'], base:120, costMul:1.0, bonus:0,  sellMul:1.0, desc:'밸런스 · 전기쥐'},
+  {id:'pari', evos:['파이리','리자드','리자몽'], base:110, costMul:0.9, bonus:-3, sellMul:1.2, desc:'공격 · 판매↑ 확률↓'},
+  {id:'kko',  evos:['꼬부기','어니부기','거북왕'], base:130, costMul:1.1, bonus:5,  sellMul:1.0, desc:'방어 · 확률+5%'},
+  {id:'iss',  evos:['이상해씨','이상해풀','이상해꽃'], base:125, costMul:1.2, bonus:8,  sellMul:0.9, desc:'안정 · 확률+8%'},
+  {id:'eve',  evos:['이브이','샤미드','님피아'], base:100, costMul:0.85,bonus:0,  sellMul:1.1, desc:'초보추천 · 저렴'},
+  {id:'mew',  evos:['뮤','뮤츠','메가뮤츠'], base:300, costMul:1.5, bonus:-10,sellMul:2.0, desc:'도박 · 판매 2배 확률↓'},
 ];
+
+/* ===== SVG 캐릭터 (6종 × 3단계, 인라인 오리지널 아트) ===== */
+function eyes(cx, cy, dx, r){
+  return `<ellipse cx="${cx-dx}" cy="${cy}" rx="${r}" ry="${r*1.25}" fill="#fff" stroke="#222" stroke-width="2"/>`+
+  `<ellipse cx="${cx+dx}" cy="${cy}" rx="${r}" ry="${r*1.25}" fill="#fff" stroke="#222" stroke-width="2"/>`+
+  `<circle cx="${cx-dx+2}" cy="${cy+2}" r="${r*0.55}" fill="#222"/>`+
+  `<circle cx="${cx+dx+2}" cy="${cy+2}" r="${r*0.55}" fill="#222"/>`+
+  `<circle cx="${cx-dx+3.5}" cy="${cy}" r="${r*0.2}" fill="#fff"/>`+
+  `<circle cx="${cx+dx+3.5}" cy="${cy}" r="${r*0.2}" fill="#fff"/>`;
+}
+function blush(cx, cy, dx){
+  return `<ellipse cx="${cx-dx}" cy="${cy}" rx="9" ry="6" fill="#ff8a8a" opacity=".7"/>`+
+         `<ellipse cx="${cx+dx}" cy="${cy}" rx="9" ry="6" fill="#ff8a8a" opacity=".7"/>`;
+}
+const ground = `<ellipse cx="100" cy="172" rx="52" ry="10" fill="#000" opacity=".3"/>`;
+
+function svgPika(st){
+  const s = [0.85, 1, 1.18][st];
+  const earL = [26, 34, 42][st];
+  const cheek = [9, 12, 14][st];
+  return `<svg viewBox="0 0 200 200">
+  ${ground}
+  <polygon points="88,${86-earL} 74,44 96,70" fill="#FFD93B" stroke="#8a6d00" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="112,${86-earL} 126,44 104,70" fill="#FFD93B" stroke="#8a6d00" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="82,62 74,44 86,54" fill="#222"/><polygon points="118,62 126,44 114,54" fill="#222"/>
+  <polygon points="150,120 168,108 160,128 176,124 158,142 140,132" fill="#c98a00" stroke="#8a6d00" stroke-width="3" stroke-linejoin="round"/>
+  <ellipse cx="100" cy="128" rx="${46*s}" ry="${42*s}" fill="#FFD93B" stroke="#8a6d00" stroke-width="3"/>
+  <ellipse cx="100" cy="146" rx="${26*s}" ry="${20*s}" fill="#FFF3C4"/>
+  ${st>=1?'<rect x="76" y="100" width="10" height="22" rx="5" fill="#8a5a00"/><rect x="114" y="100" width="10" height="22" rx="5" fill="#8a5a00"/>':''}
+  <circle cx="${100-30*s}" cy="128" r="${cheek}" fill="#FF3B3B" stroke="#a00" stroke-width="2"/>
+  <circle cx="${100+30*s}" cy="128" r="${cheek}" fill="#FF3B3B" stroke="#a00" stroke-width="2"/>
+  ${eyes(100,112,17,10)}${blush(100,128,26)}
+  <path d="M94 132 Q100 138 106 132" stroke="#7a4d00" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  ${st>=2?'<polygon points="100,60 108,74 100,70 92,74" fill="#fff" opacity=".9"/>':''}
+  </svg>`;
+}
+function svgPari(st){
+  const s=[0.85,1,1.2][st];
+  const flame=[[0,0,1],[0,0,1.25],[0,0,1.6]][st][2];
+  return `<svg viewBox="0 0 200 200">${ground}
+  ${st>=2?'<polygon points="66,110 30,84 52,116" fill="#4FD1C5" stroke="#1d7a72" stroke-width="3" stroke-linejoin="round"/><polygon points="134,110 170,84 148,116" fill="#4FD1C5" stroke="#1d7a72" stroke-width="3" stroke-linejoin="round"/>':''}
+  <ellipse cx="138" cy="140" rx="10" ry="22" fill="#FF9F43" stroke="#a35400" stroke-width="3"/>
+  <g transform="translate(138,112) scale(${flame})">
+    <path d="M0,-26 C14,-12 12,4 0,12 C-12,4 -14,-12 0,-26" fill="#FF5A00" stroke="#a32e00" stroke-width="2"/>
+    <path d="M0,-14 C7,-6 6,3 0,7 C-6,3 -7,-6 0,-14" fill="#FFD93B"/>
+  </g>
+  <ellipse cx="96" cy="132" rx="${42*s}" ry="${40*s}" fill="#FF9F43" stroke="#a35400" stroke-width="3"/>
+  <ellipse cx="96" cy="150" rx="${24*s}" ry="${18*s}" fill="#FFE8C2"/>
+  <circle cx="96" cy="96" r="${30*s}" fill="#FF9F43" stroke="#a35400" stroke-width="3"/>
+  ${st>=1?'<polygon points="88,70 94,56 98,70" fill="#FFE8C2" stroke="#a35400" stroke-width="2"/><polygon points="104,70 110,56 114,70" fill="#FFE8C2" stroke="#a35400" stroke-width="2"/>':''}
+  ${st>=2?'<polygon points="80,72 70,58 84,64" fill="#fff" stroke="#a35400" stroke-width="2"/><polygon points="112,72 122,58 108,64" fill="#fff" stroke="#a35400" stroke-width="2"/>':''}
+  <ellipse cx="86" cy="92" rx="3" ry="2" fill="#7a3a00"/><ellipse cx="106" cy="92" rx="3" ry="2" fill="#7a3a00"/>
+  ${eyes(96,102,15,9)}${blush(96,116,24)}
+  <path d="M90 118 Q96 123 102 118" stroke="#7a3a00" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+function svgKko(st){
+  const s=[0.85,1,1.2][st];
+  return `<svg viewBox="0 0 200 200">${ground}
+  <path d="M140,130 q18,-4 14,10 q-4,12 -18,8" fill="none" stroke="#5AA2FF" stroke-width="7" stroke-linecap="round"/>
+  <ellipse cx="92" cy="136" rx="${40*s}" ry="${36*s}" fill="#8a5a1e" stroke="#5c3a0e" stroke-width="3"/>
+  <ellipse cx="92" cy="136" rx="${30*s}" ry="${26*s}" fill="#C98F3B"/>
+  <ellipse cx="92" cy="136" rx="${20*s}" ry="${16*s}" fill="#E8C37A"/>
+  ${st>=2?'<rect x="56" y="100" width="20" height="14" rx="6" fill="#9aa2ad" stroke="#4a4f57" stroke-width="2.5" transform="rotate(-20 66 107)"/><rect x="108" y="100" width="20" height="14" rx="6" fill="#9aa2ad" stroke="#4a4f57" stroke-width="2.5" transform="rotate(20 118 107)"/><circle cx="58" cy="107" r="5" fill="#333"/><circle cx="126" cy="107" r="5" fill="#333"/>':''}
+  <circle cx="96" cy="86" r="${30*s}" fill="#6AB0FF" stroke="#2a5fa8" stroke-width="3"/>
+  ${st>=1?'<ellipse cx="68" cy="84" rx="8" ry="12" fill="#6AB0FF" stroke="#2a5fa8" stroke-width="2.5" transform="rotate(-25 68 84)"/><ellipse cx="124" cy="84" rx="8" ry="12" fill="#6AB0FF" stroke="#2a5fa8" stroke-width="2.5" transform="rotate(25 124 84)"/>':''}
+  ${eyes(96,86,15,9)}${blush(96,100,24)}
+  <path d="M90 102 Q96 107 102 102" stroke="#174a85" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <ellipse cx="96" cy="128" rx="20" ry="12" fill="#FFF3D6"/>
+  </svg>`;
+}
+function svgIss(st){
+  const s=[0.85,1,1.18][st];
+  const bulb = st===0
+    ? `<ellipse cx="100" cy="66" rx="20" ry="16" fill="#3E8E4D" stroke="#1d4d27" stroke-width="3"/><path d="M100,52 L100,40 M92,56 L86,48 M108,56 L114,48" stroke="#1d4d27" stroke-width="3" stroke-linecap="round"/>`
+    : st===1
+    ? `<ellipse cx="100" cy="62" rx="24" ry="20" fill="#2E7D46" stroke="#1d4d27" stroke-width="3"/><ellipse cx="100" cy="58" rx="12" ry="14" fill="#F48FB1" stroke="#a34d68" stroke-width="2.5"/>`
+    : `<g><ellipse cx="76" cy="58" rx="14" ry="10" fill="#E84545" stroke="#8e1f1f" stroke-width="2.5" transform="rotate(-25 76 58)"/><ellipse cx="124" cy="58" rx="14" ry="10" fill="#E84545" stroke="#8e1f1f" stroke-width="2.5" transform="rotate(25 124 58)"/><ellipse cx="100" cy="50" rx="14" ry="12" fill="#FF6B6B" stroke="#8e1f1f" stroke-width="2.5"/><circle cx="100" cy="50" r="9" fill="#FFD93B" stroke="#8e6d00" stroke-width="2.5"/></g>`;
+  return `<svg viewBox="0 0 200 200">${ground}${bulb}
+  <polygon points="72,84 60,60 84,72" fill="#5FC9A7" stroke="#2a7a5f" stroke-width="3" stroke-linejoin="round"/>
+  <polygon points="128,84 140,60 116,72" fill="#5FC9A7" stroke="#2a7a5f" stroke-width="3" stroke-linejoin="round"/>
+  <ellipse cx="100" cy="130" rx="${44*s}" ry="${38*s}" fill="#5FC9A7" stroke="#2a7a5f" stroke-width="3"/>
+  <ellipse cx="84" cy="122" rx="7" ry="9" fill="#2a7a5f"/><ellipse cx="118" cy="136" rx="7" ry="9" fill="#2a7a5f"/><ellipse cx="106" cy="148" rx="6" ry="8" fill="#2a7a5f"/>
+  <ellipse cx="100" cy="150" rx="22" ry="15" fill="#E8F7EF"/>
+  ${eyes(100,112,17,10)}${blush(100,126,26)}
+  <path d="M93 128 Q100 134 107 128" stroke="#1d5c44" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+function svgEve(st){
+  if(st===0) return `<svg viewBox="0 0 200 200">${ground}
+    <polygon points="70,80 58,38 90,64" fill="#C98F5A" stroke="#7a4d21" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="130,80 142,38 110,64" fill="#C98F5A" stroke="#7a4d21" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="70,72 64,48 80,62" fill="#F4A7C3"/><polygon points="130,72 136,48 120,62" fill="#F4A7C3"/>
+    <ellipse cx="142" cy="142" rx="18" ry="12" fill="#C98F5A" stroke="#7a4d21" stroke-width="3" transform="rotate(25 142 142)"/>
+    <ellipse cx="150" cy="148" rx="9" ry="7" fill="#FFF3D6"/>
+    <ellipse cx="100" cy="132" rx="42" ry="36" fill="#C98F5A" stroke="#7a4d21" stroke-width="3"/>
+    <path d="M66,124 L80,118 L74,130 L88,128 L80,138 L94,140" fill="#FFF3D6" stroke="#7a4d21" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M134,124 L120,118 L126,130 L112,128 L120,138 L106,140" fill="#FFF3D6" stroke="#7a4d21" stroke-width="2" stroke-linejoin="round"/>
+    ${eyes(100,112,17,10)}${blush(100,126,25)}
+    <polygon points="96,126 104,126 100,131" fill="#5c3a17"/><path d="M100,131 Q100,135 96,136 M100,131 Q100,135 104,136" stroke="#5c3a17" stroke-width="1.8" fill="none"/>
+    </svg>`;
+  if(st===1) return `<svg viewBox="0 0 200 200">${ground}
+    <polygon points="66,80 40,66 58,92" fill="#7AC7FF" stroke="#2a6fa8" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="134,80 160,66 142,92" fill="#7AC7FF" stroke="#2a6fa8" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="52,74 40,66 48,80" fill="#fff" opacity=".8"/><polygon points="148,74 160,66 152,80" fill="#fff" opacity=".8"/>
+    <path d="M140,140 q22,2 16,20 q-10,8 -24,0" fill="#7AC7FF" stroke="#2a6fa8" stroke-width="3"/>
+    <path d="M150,142 q12,0 10,10" fill="#fff" opacity=".7"/>
+    <ellipse cx="98" cy="132" rx="42" ry="38" fill="#7AC7FF" stroke="#2a6fa8" stroke-width="3"/>
+    <ellipse cx="98" cy="152" rx="22" ry="14" fill="#fff"/>
+    ${eyes(98,110,17,10)}${blush(98,124,25)}
+    <path d="M92 126 Q98 131 104 126" stroke="#174a75" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </svg>`;
+  return `<svg viewBox="0 0 200 200">${ground}
+    <polygon points="70,78 58,40 90,62" fill="#FFD6E8" stroke="#b4527d" stroke-width="3" stroke-linejoin="round"/>
+    <polygon points="130,78 142,40 110,62" fill="#FFD6E8" stroke="#b4527d" stroke-width="3" stroke-linejoin="round"/>
+    <ellipse cx="52" cy="120" rx="8" ry="16" fill="#7AC7FF" stroke="#2a6fa8" stroke-width="2.5"/>
+    <ellipse cx="148" cy="120" rx="8" ry="16" fill="#F4A7C3" stroke="#b4527d" stroke-width="2.5"/>
+    <circle cx="52" cy="138" r="8" fill="#4FA3FF" stroke="#2a6fa8" stroke-width="2"/><circle cx="148" cy="138" r="8" fill="#FF6BA3" stroke="#b4527d" stroke-width="2"/>
+    <ellipse cx="142" cy="146" rx="16" ry="11" fill="#FFD6E8" stroke="#b4527d" stroke-width="3"/>
+    <ellipse cx="100" cy="132" rx="42" ry="38" fill="#FFF5FA" stroke="#b4527d" stroke-width="3"/>
+    <polygon points="100,140 112,146 100,152 88,146" fill="#FF6BA3" stroke="#b4527d" stroke-width="2"/>
+    <ellipse cx="100" cy="110" rx="11" ry="13" fill="#4FA3FF" stroke="#2a4d8f" stroke-width="2"/><ellipse cx="100" cy="110" rx="11" ry="13" fill="none" stroke="#2a4d8f" stroke-width="0"/>
+    ${eyes(100,110,18,10)}
+    <circle cx="82" cy="108" r="4" fill="#4FA3FF"/><circle cx="118" cy="108" r="4" fill="#4FA3FF"/>
+    ${blush(100,124,26)}
+    <path d="M94 126 Q100 131 106 126" stroke="#8e2f56" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </svg>`;
+}
+function svgMew(st){
+  if(st===0) return `<svg viewBox="0 0 200 200">${ground}
+    <path d="M136,128 q26,-6 22,-30" fill="none" stroke="#FF9DC6" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="160" cy="94" r="9" fill="#FF9DC6" stroke="#c25a8a" stroke-width="2.5"/>
+    <ellipse cx="98" cy="130" rx="36" ry="34" fill="#FFB3D9" stroke="#c25a8a" stroke-width="3"/>
+    <ellipse cx="70" cy="118" rx="10" ry="16" fill="#FFB3D9" stroke="#c25a8a" stroke-width="2.5" transform="rotate(-20 70 118)"/>
+    <ellipse cx="126" cy="118" rx="10" ry="16" fill="#FFB3D9" stroke="#c25a8a" stroke-width="2.5" transform="rotate(20 126 118)"/>
+    <ellipse cx="98" cy="92" rx="26" ry="24" fill="#FFB3D9" stroke="#c25a8a" stroke-width="3"/>
+    <ellipse cx="86" cy="90" rx="8" ry="11" fill="#4FA3FF" stroke="#1d3f7a" stroke-width="2"/>
+    <ellipse cx="110" cy="90" rx="8" ry="11" fill="#4FA3FF" stroke="#1d3f7a" stroke-width="2"/>
+    <circle cx="88" cy="88" r="3" fill="#fff"/><circle cx="112" cy="88" r="3" fill="#fff"/>
+    ${blush(98,104,20)}
+    <path d="M93 104 Q98 108 103 104" stroke="#8e2f56" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    </svg>`;
+  if(st===1) return `<svg viewBox="0 0 200 200">${ground}
+    <path d="M128,140 q30,4 26,-28 q-2,-16 -14,-22" fill="none" stroke="#C9B8FF" stroke-width="9" stroke-linecap="round"/>
+    <ellipse cx="98" cy="140" rx="30" ry="30" fill="#D8CCFF" stroke="#6a5aa8" stroke-width="3"/>
+    <ellipse cx="76" cy="128" rx="8" ry="14" fill="#D8CCFF" stroke="#6a5aa8" stroke-width="2.5"/>
+    <ellipse cx="120" cy="128" rx="8" ry="14" fill="#D8CCFF" stroke="#6a5aa8" stroke-width="2.5"/>
+    <ellipse cx="98" cy="88" rx="26" ry="32" fill="#D8CCFF" stroke="#6a5aa8" stroke-width="3"/>
+    <path d="M98,58 q-4,-22 -16,-30 M98,58 q4,-22 16,-30" stroke="#6a5aa8" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="88" cy="88" rx="6" ry="9" fill="#5a3fa8"/><ellipse cx="108" cy="88" rx="6" ry="9" fill="#5a3fa8"/>
+    <circle cx="90" cy="86" r="2" fill="#fff"/><circle cx="110" cy="86" r="2" fill="#fff"/>
+    <path d="M92 108 Q98 112 104 108" stroke="#4a357a" stroke-width="2.2" fill="none"/>
+    </svg>`;
+  return `<svg viewBox="0 0 200 200">${ground}
+    <path d="M126,142 q34,6 30,-30 q-2,-18 -16,-24" fill="none" stroke="#B8A6FF" stroke-width="12" stroke-linecap="round"/>
+    <ellipse cx="98" cy="142" rx="32" ry="30" fill="#C9B8FF" stroke="#4a357a" stroke-width="3.5"/>
+    <path d="M70,120 L58,100 L76,108 M126,120 L138,100 L120,108" stroke="#4a357a" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="98" cy="86" rx="28" ry="34" fill="#C9B8FF" stroke="#4a357a" stroke-width="3.5"/>
+    <path d="M98,54 q-6,-26 -20,-34 M98,54 q6,-26 20,-34 M84,60 q-10,-8 -18,-10 M112,60 q10,-8 18,-10" stroke="#4a357a" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="87" cy="86" rx="7" ry="10" fill="#00E5FF" stroke="#0a5a6a" stroke-width="2"/>
+    <ellipse cx="109" cy="86" rx="7" ry="10" fill="#00E5FF" stroke="#0a5a6a" stroke-width="2"/>
+    <path d="M90 108 Q98 114 106 108" stroke="#2a1d4d" stroke-width="2.5" fill="none"/>
+    <circle cx="98" cy="128" r="6" fill="#00E5FF" opacity=".8"/>
+    </svg>`;
+}
+function monSVG(id, st){
+  if(id==='pika') return svgPika(st);
+  if(id==='pari') return svgPari(st);
+  if(id==='kko') return svgKko(st);
+  if(id==='iss') return svgIss(st);
+  if(id==='eve') return svgEve(st);
+  return svgMew(st);
+}
+
+/* ===== 공식 ===== */
 function rankOf(lv){
   if(lv>=30) return {n:'👑 아르세우스급', c:'#ff1744', bg:'linear-gradient(90deg,#ff1744,#ffea00,#00e676,#00b0ff,#d500f9)'};
   if(lv>=25) return {n:'챔피언', c:'#ff5252', bg:'rgba(255,82,82,.18)'};
@@ -216,11 +422,11 @@ function auraColor(lv){
   if(lv>=5)  return 'radial-gradient(circle,#69f0ae44 0%,transparent 70%)';
   return 'radial-gradient(circle,#ffffff22 0%,transparent 70%)';
 }
-const costOf  = (lv,m)=> Math.floor((100 + lv*120) * Math.pow(1.32, lv) * m.costMul);
-const sellOf  = (lv,m)=> lv<=0 ? 50 : Math.floor((200*Math.pow(1.55,lv) + lv*200) * m.sellMul);
-const cpOf    = (lv,m)=> Math.floor(m.base * Math.pow(1.55, lv) + lv*15);
-const probOf  = (lv,m,pity)=> lv>=MAX_LV?0:Math.max(1,Math.min(100, SUCCESS[lv]+m.bonus+pity));
-function destroyProb(lv){ // 실패 시 파괴(0강) 확률
+const costOf = (lv,m)=> Math.floor((100 + lv*120) * Math.pow(1.32, lv) * m.costMul);
+const sellOf = (lv,m)=> lv<=0 ? 50 : Math.floor((200*Math.pow(1.55,lv) + lv*200) * m.sellMul * EVO_SELL[stageOf(lv)]);
+const cpOf   = (lv,m)=> Math.floor(m.base * Math.pow(1.55, lv) * EVO_MULT[stageOf(lv)] + lv*15);
+const probOf = (lv,m,pity)=> lv>=MAX_LV?0:Math.max(1,Math.min(100, SUCCESS[lv]+m.bonus+pity));
+function destroyProb(lv){
   if(lv<=15) return 0;
   const t={16:2,17:3,18:4,19:5,20:6,21:8,22:10,23:13,24:16,25:18,26:20,27:22,28:25,29:30};
   return t[lv]||0;
@@ -234,13 +440,19 @@ function dropOf(lv){
 const fmt = n => Math.floor(n).toLocaleString('ko-KR');
 
 /* ===== 상태 ===== */
-let S = {money:2000, level:0, monId:'pika', best:0, pity:0, try:0, ok:0, fail:0, dest:0, earned:0};
+let S = {money:2000, level:0, monId:'pika', best:0, pity:0, try:0, ok:0, fail:0, dest:0, evo:0, dex:[]};
 try{
   const raw = localStorage.getItem('pokemon-enhance-save');
-  if(raw){ const p=JSON.parse(raw); S = Object.assign(S,p); }
+  if(raw){ const p=JSON.parse(raw); S = Object.assign(S,p); if(!Array.isArray(S.dex)) S.dex=[]; }
 }catch(e){}
-let auto=false, autoTimer=null, busy=false, huntCD=false;
+let auto=false, autoTimer=null, busy=false, huntCD=false, evoPlaying=false;
 const mon = ()=> MONS.find(m=>m.id===S.monId) || MONS[0];
+const curName = ()=> mon().evos[stageOf(S.level)];
+function discover(id, st){
+  const k = id+'-'+st;
+  if(!S.dex.includes(k)){ S.dex.push(k); return true; }
+  return false;
+}
 
 /* ===== 오디오 ===== */
 let AC=null;
@@ -267,6 +479,7 @@ const sfx={
   destroy(){ tone(400,.6,'sawtooth',.25,40); tone(90,.7,'square',.2,30,.1); },
   sell(){ [660,880,1320].forEach((f,i)=>tone(f,.12,'square',.16,null,i*.06)); },
   hunt(){ tone(500+Math.random()*400,.09,'triangle',.16,900); },
+  evolve(){ [392,523,659,784,1046,1318,1568].forEach((f,i)=>tone(f,.22,'triangle',.2,null,i*.11)); },
   max(){ [1046,1318,1568,2093].forEach((f,i)=>tone(f,.2,'triangle',.2,null,i*.09)); },
 };
 function buzz(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
@@ -304,7 +517,7 @@ function save(){ try{ localStorage.setItem('pokemon-enhance-save', JSON.stringif
 
 /* ===== 렌더 ===== */
 function render(){
-  const m=mon(), lv=S.level;
+  const m=mon(), lv=S.level, st=stageOf(lv);
   const pityBonus=Math.min(10,S.pity*2);
   const p=probOf(lv,m,pityBonus), dp=destroyProb(lv);
   const cost=costOf(lv,m), sell=sellOf(lv,m);
@@ -315,10 +528,16 @@ function render(){
   $('best').textContent='+'+S.best;
   $('lv').textContent='+'+lv;
   $('pity').textContent=(S.pity>=2&&lv<MAX_LV)?`(자비 +${pityBonus}%)`:'';
-  $('mon-name').textContent=m.name+(lv>=30?' · MAX':'');
-  $('cp').textContent='CP '+fmt(cpOf(lv,m))+' · '+m.name+'('+(m.desc)+')';
-  $('mon').textContent=m.emoji;
-  $('mon').style.fontSize=(lv>=20?'124px':lv>=10?'114px':'104px');
+  $('mon-name').textContent=curName()+(lv>=30?' · MAX':'')+`  [${st+1}단계]`;
+  $('evo-line').innerHTML = m.evos.map((n,i)=> i===st?`<b>${n}</b>`:`${n}`).join(' → ');
+  $('cp').textContent=`CP ${fmt(cpOf(lv,m))} · ${m.desc} · 진화보정 ×${EVO_MULT[st]}`;
+  const hint=$('evo-hint');
+  if(st<2){
+    const need=EVO_AT[st]-lv;
+    hint.textContent=`✨ +${EVO_AT[st]} 진화 (${m.evos[st+1]})까지 ${need}단계`;
+    hint.className='evo-hint';
+  }else{ hint.textContent='🌟 최종 진화 달성!'; hint.className='evo-hint max'; }
+  $('mon').innerHTML=monSVG(m.id, st);
   const rb=$('rank'); rb.textContent=(lv>=30?'👑 ':'')+r.n+' · +'+lv;
   rb.style.color=r.c; rb.style.borderColor=r.c; rb.style.background=r.bg;
   $('aura').style.background=auraColor(lv);
@@ -336,22 +555,46 @@ function render(){
   $('hunt-sub').textContent='+'+fmt(Math.floor(80+lv*25))+'G~ · 터치!';
   const btn=$('enhance-btn');
   if(lv>=MAX_LV){ btn.textContent='👑 MAX 달성! 판매하고 새로 시작'; btn.disabled=false; }
-  else{ btn.textContent=`🔨 강화하기 (${fmt(cost)}G · ${p}%)`; btn.disabled=S.money<cost; }
+  else{ btn.textContent=`🔨 강화하기 (${fmt(cost)}G · ${p}%)`; btn.disabled=S.money<cost||evoPlaying; }
   $('st-try').textContent=S.try; $('st-ok').textContent=S.ok; $('st-fail').textContent=S.fail;
-  $('st-dest').textContent=S.dest; $('st-gold').textContent=fmt(S.earned)+'G';
+  $('st-dest').textContent=S.dest; $('st-evo').textContent=S.evo;
   save();
+}
+
+/* ===== 진화 연출 ===== */
+function playEvolution(mid, fromSt, toSt, done){
+  evoPlaying=true; render();
+  const ov=$('evo-overlay'), big=$('evo-big'), msg=$('evo-msg'), nm=$('evo-name');
+  ov.classList.add('open');
+  big.innerHTML=monSVG(mid, fromSt);
+  $('evo-big').parentElement.id='evo-flash';
+  msg.textContent='어라…? 상태가 이상하다…!';
+  nm.textContent='';
+  sfx.enhance(); buzz([60,60,60]);
+  big.classList.add('evolving');
+  setTimeout(()=>{
+    flash('#ffffff',.8); sfx.evolve(); buzz([80,80,120,80]);
+    big.innerHTML=monSVG(mid, toSt);
+    msg.textContent='🎉 진화했다!';
+    nm.textContent=MONS.find(m=>m.id===mid).evos[toSt]+'!';
+    confetti(50);
+  },1200);
+  setTimeout(()=>{
+    ov.classList.remove('open');
+    big.classList.remove('evolving');
+    evoPlaying=false; render(); if(done)done();
+  },2600);
 }
 
 /* ===== 핵심 로직 ===== */
 function doEnhance(){
   const m=mon(), lv=S.level;
-  if(busy) return;
+  if(busy||evoPlaying) return;
   if(lv>=MAX_LV){ sfx.max(); toast('👑 이미 MAX!', '#ffd76a'); return; }
   const cost=costOf(lv,m);
   if(S.money<cost){ toast('💰 골드 부족!', '#ff8a8a'); log('골드 부족 — <span class="gold">사냥(H)</span>이나 판매를 하세요','fail'); buzz(40); return; }
   busy=true; ac(); sfx.enhance();
   const stage=$('mon'); stage.classList.remove('shake'); void stage.offsetWidth; stage.classList.add('shake');
-  // 0.45초 연출 후 판정 (검강화 특유의 두근거림)
   setTimeout(()=>{
     S.money-=cost; S.try++;
     const pityBonus=Math.min(10,S.pity*2);
@@ -359,12 +602,28 @@ function doEnhance(){
     const roll=Math.random()*100;
     const el=$('mon');
     if(roll<p){
+      const oldSt=stageOf(lv);
       S.level=Math.min(MAX_LV,lv+1); S.ok++; S.pity=0;
       if(S.level>S.best) S.best=S.level;
+      const newSt=stageOf(S.level);
+      discover(m.id, newSt);
       el.classList.remove('jump'); void el.offsetWidth; el.classList.add('jump','boost');
       setTimeout(()=>el.classList.remove('boost'),300);
       flash(S.level>=20?'#ffd76a':'#ffffff', S.level>=20?.55:.35);
       sfx.success(S.level); buzz([30,40,30]);
+      if(newSt>oldSt){
+        // 진화!
+        S.evo++;
+        busy=false; render();
+        log(`<span class="ok">✔ +${lv} → +${S.level} 성공</span> <span class="gold">(-${fmt(cost)}G)</span>`, 'ok');
+        log(`<span class="evo">✨ ${m.evos[oldSt]} → ${m.evos[newSt]} 진화! CP×${EVO_MULT[newSt]}</span>`, 'evo');
+        toast(`✨ 진화! ${m.evos[newSt]}!`, '#e040fb');
+        playEvolution(m.id, oldSt, newSt, ()=>{
+          if(S.level>=10) confetti(Math.min(40,8+S.level));
+          if(S.level===30){ sfx.max(); confetti(60); log('👑 <b>아르세우스급 달성!</b> 전설이다!','gold'); }
+        });
+        return;
+      }
       toast(S.level>=30?'👑 MAX!!!':`성공! +${S.level}`,'#5dff8a');
       floatTxt(`+${S.level} 성공!`,'#5dff8a');
       log(`<span class="ok">✔ +${lv} → +${S.level} 성공</span> <span class="gold">(-${fmt(cost)}G)</span>`, 'ok');
@@ -379,38 +638,42 @@ function doEnhance(){
         flash('#ff0000',.55); sfx.destroy(); buzz([100,60,120]);
         toast('💥 파괴... 0강', '#ff3b3b');
         floatTxt('파괴됨...','#ff3b3b');
-        log(`<span class="dest">💥 +${lv} 파괴 → +0</span> (파괴 ${dp}%)`, 'dest');
+        log(`<span class="dest">💥 +${lv} 파괴 → +0 (${m.evos[0]}로)</span> (파괴 ${dp}%)`, 'dest');
       }else{
         const drop=dropOf(lv);
+        const oldSt=stageOf(lv);
         S.level=Math.max(0,lv-drop); S.fail++; S.pity++;
+        const newSt=stageOf(S.level);
         flash('#331111',.4); sfx.fail(); buzz(60);
         toast(drop===0?'실패 (유지)':`실패 -${drop}`, '#ff7b7b');
         floatTxt(drop===0?'유지!':`-${drop}...`, '#ff7b7b');
         log(`<span class="fail">✖ +${lv} 실패 → +${S.level}</span>${drop?` (-${drop})`:''} <span class="gold">(-${fmt(cost)}G)</span>`, 'fail');
+        if(newSt<oldSt) log(`⬇ ${m.evos[oldSt]} → ${m.evos[newSt]} 퇴화…`, 'fail');
       }
     }
     busy=false; render();
   },380);
 }
 function doHunt(){
-  if(huntCD) return; huntCD=true; setTimeout(()=>huntCD=false,700);
+  if(huntCD||evoPlaying) return; huntCD=true; setTimeout(()=>huntCD=false,700);
   ac();
   const lv=S.level;
   const base=80+lv*25+Math.random()*(50+lv*10);
   const crit=Math.random()<0.1;
   const gain=Math.floor(base*(crit?3:1));
-  S.money+=gain; S.earned+=gain; sfx.hunt(); buzz(crit?50:15);
+  S.money+=gain; sfx.hunt(); buzz(crit?50:15);
   floatTxt((crit?'✨대박 +':' +')+fmt(gain)+'G', crit?'#ffe45e':'#9ef0ff');
   if(crit) log(`⚔️ 사냥 <b>대박!</b> <span class="gold">+${fmt(gain)}G</span>`,'gold');
   render();
 }
 function doSell(){
+  if(evoPlaying) return;
   const m=mon(), lv=S.level;
   if(lv<=0){ toast('판매할 강화가 없어요', '#9ef0ff'); sfx.click(); return; }
   ac();
   const price=sellOf(lv,m);
-  S.money+=price; S.earned+=price;
-  log(`💸 ${m.name} +${lv} 판매 <span class="gold">+${fmt(price)}G</span> → +0`, 'info');
+  S.money+=price;
+  log(`💸 ${curName()} +${lv} 판매 <span class="gold">+${fmt(price)}G</span> → +0`, 'info');
   S.level=0; S.pity=0; sfx.sell(); buzz(30);
   toast(`+${fmt(price)}G!`, '#ffd76a'); flash('#448aff',.3);
   render();
@@ -427,21 +690,21 @@ $('auto-btn').addEventListener('click',()=>{
   $('auto-btn').textContent=auto?'🤖 자동강화 ON':'🤖 자동강화 OFF';
   $('auto-btn').classList.toggle('on',auto);
   if(auto){ autoTimer=setInterval(()=>{
-      if(!auto) return;
+      if(!auto||evoPlaying) return;
       const m=mon();
       if(S.level>=MAX_LV){ setAuto(false); toast('MAX 달성!', '#ffd76a'); return; }
       if(S.money<costOf(S.level,m)){ setAuto(false); log('자동강화 중지 — 골드 부족','fail'); return; }
       if(!busy) doEnhance();
-    },1000);
-    log('🤖 자동강화 시작 (1초 간격)','info');
+    },1100);
+    log('🤖 자동강화 시작 (진화 연출 중 자동대기)','info');
   }else{ clearInterval(autoTimer); log('🤖 자동강화 중지','info'); }
 });
 function setAuto(v){ auto=v; clearInterval(autoTimer);
   $('auto-btn').textContent=auto?'🤖 자동강화 ON':'🤖 자동강화 OFF';
   $('auto-btn').classList.toggle('on',auto); }
 $('reset-btn').addEventListener('click',()=>{
-  if(!confirm('정말 초기화할까요? (골드·강화·기록 전부 리셋)')) return;
-  S={money:2000,level:0,monId:'pika',best:0,pity:0,try:0,ok:0,fail:0,dest:0,earned:0};
+  if(!confirm('정말 초기화할까요? (골드·강화·도감 전부 리셋)')) return;
+  S={money:2000,level:0,monId:'pika',best:0,pity:0,try:0,ok:0,fail:0,dest:0,evo:0,dex:[]};
   setAuto(false); save(); render(); $('log').innerHTML='';
   log('↻ 초기화 — 2000G 지급!','info'); toast('초기화!', '#fff');
 });
@@ -450,14 +713,20 @@ $('close-modal').addEventListener('click',()=>$('modal').classList.remove('open'
 $('modal').addEventListener('click',e=>{ if(e.target.id==='modal') e.target.classList.remove('open'); });
 function buildDex(){
   const g=$('mon-grid'); g.innerHTML='';
+  $('dex-title').textContent=`📖 포켓몬 도감 ${S.dex.length}/18`;
   MONS.forEach(m=>{
     const b=document.createElement('button');
     if(m.id===S.monId) b.className='sel';
-    b.innerHTML=`<div class="e">${m.emoji}</div><b>${m.name}</b><small>${m.desc}<br>비용×${m.costMul} · 성공${m.bonus>=0?'+':''}${m.bonus}% · 판매×${m.sellMul}</small>`;
+    const minis=m.evos.map((n,i)=>{
+      const got=S.dex.includes(m.id+'-'+i);
+      return `<span class="${got?'':'locked'}" title="${got?n:'???'}">${monSVG(m.id,i)}</span>`;
+    }).join('');
+    b.innerHTML=`<div class="e">${monSVG(m.id, stageOf(S.level)*0+ (m.id===S.monId?stageOf(S.level):2))}</div><b>${m.evos[0]} 라인</b><small>${m.evos.join(' → ')}<br>비용×${m.costMul} · 성공${m.bonus>=0?'+':''}${m.bonus}% · 판매×${m.sellMul}<br>${m.desc}</small><div class="dex-row">${minis}</div>`;
     b.onclick=()=>{
       if(m.id!==S.monId){
         S.monId=m.id; S.level=0; S.pity=0; setAuto(false);
-        log(`📖 ${m.name} 선택! +0부터 시작`,'info'); toast(m.name+'!', '#9ef0ff'); sfx.sell();
+        discover(m.id,0);
+        log(`📖 ${m.evos[0]} 선택! +0부터 시작`,'info'); toast(m.evos[0]+'!', '#9ef0ff'); sfx.sell();
       }
       $('modal').classList.remove('open'); render();
     };
@@ -466,17 +735,18 @@ function buildDex(){
 }
 window.addEventListener('keydown',e=>{
   if($('modal').classList.contains('open')){ if(e.key==='Escape') $('modal').classList.remove('open'); return; }
+  if($('evo-overlay').classList.contains('open')) return;
   if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); doEnhance(); }
   else if(e.code==='KeyH') doHunt();
   else if(e.code==='KeyS') doSell();
 });
-// 첫 터치에 오디오 해제 (모바일 정책)
 window.addEventListener('pointerdown',()=>ac(),{once:true});
 
 /* ===== 부트 ===== */
-log('🎮 <b>포켓몬 강화하기</b> 시작! 검강화 룰 그대로','gold');
-log('🔨 강화 비용↑ 확률↓ · 실패 하락 · 16강부터 파괴 주의','info');
-log('⚔️ 골드 부족하면 <b>사냥</b>을 눌러 벌자 (0.7초마다 가능)','info');
+discover(S.monId, stageOf(S.level));
+log('🎮 <b>포켓몬 강화하기</b> 진화 시스템 가동!','gold');
+log('✨ <b>+7에서 1차 진화, +16에서 최종 진화!</b> 진화하면 CP·판매가↑','evo');
+log('🔨 실패 하락 · 16강부터 파괴 · <b>사냥(H)</b>으로 파밍','info');
 render();
 </script>
 </body>
