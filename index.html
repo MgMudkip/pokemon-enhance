@@ -139,8 +139,9 @@
   .dex-row span.locked{filter:brightness(0);opacity:.5}
   #close-modal,#close-bgm{width:100%;margin-top:10px;min-height:48px;border-radius:12px;border:none;
     background:#ffd76a;font-weight:900;font-size:15px;cursor:pointer}
-  #bgm-off{width:100%;margin-top:8px;min-height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.2);
+  #bgm-off,#bgm-retry{width:100%;margin-top:8px;min-height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.2);
     background:rgba(255,255,255,.1);color:#fff;font-weight:800;font-size:14px;cursor:pointer}
+  #bgm-retry{background:linear-gradient(180deg,#3ddc84,#0e9f5b);border:none;color:#062b1a;font-weight:900}
   .bgm-item{width:100%;display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.07);
     border:2px solid transparent;border-radius:14px;padding:12px 10px;color:#fff;cursor:pointer;
     touch-action:manipulation;margin-bottom:8px;font-size:15px}
@@ -174,7 +175,7 @@
   #close-shop{width:100%;margin-top:10px;min-height:48px;border-radius:12px;border:none;
     background:#ffd76a;font-weight:900;font-size:15px;cursor:pointer}
   #bgm-wrap{position:fixed;left:0;bottom:0;width:2px;height:2px;overflow:hidden;pointer-events:none;opacity:.01;z-index:1}
-  #bgm-frame{width:100%;height:100%;border:none}
+  #bgm-player{width:100%;height:100%}
   #income{color:#7dffb2}
   #battle-btn{background:linear-gradient(180deg,#ff7043,#c62828);border:none}
   #battle-modal{position:fixed;inset:0;z-index:70;background:rgba(5,6,20,.78);display:none;
@@ -264,7 +265,7 @@
   <footer>💰 초당 자동 수급(종료 후 8시간까지) · 🔥배틀 승리=해금 · 🎵BGM 3곡 선택<br>Space=강화 · H=사냥 · S=판매 · B=배틀 · 모바일 진동·사운드 지원<br>이미지: PokeAPI 공식 아트워크 ©Nintendo/Creatures Inc./GAME FREAK · BGM: YouTube(팬 메이드)</footer>
 </div>
 
-<div id="bgm-wrap"><iframe id="bgm-frame" title="bgm" frameborder="0" allow="autoplay; encrypted-media"></iframe></div>
+<div id="bgm-wrap"><div id="bgm-player"></div></div>
 <div id="fever-banner" style="display:none">🔥 FEVER <b id="fever-t">15</b>s · 성공+12% 사냥×2!</div>
 <div id="toast"></div>
 <div id="flash"></div>
@@ -278,8 +279,9 @@
 <div id="bgm-modal">
   <div class="sheet">
     <h2>🎵 BGM 선택 (반복재생)</h2>
-    <p>유튜브 음악을 게임 배경음으로 반복 재생해요.<br>첫 터치 후 자동 시작 · 골라서 바로 재생!</p>
+    <p>유튜브 음악을 게임 배경음으로 반복 재생해요.<br>첫 터치 후 자동 시작 · 골라서 바로 재생!<br><small style="color:#ff9d9d">※ 소리가 안 나면 ▶ 다시 재생 → 그래도 안 되면 카톡 등 인앱브라우저 말고 크롬/사파리로 열고, 아이폰은 무음스위치를 확인해줘!</small></p>
     <div id="bgm-list"></div>
+    <button id="bgm-retry">▶ 다시 재생</button>
     <button id="bgm-off">🔇 BGM 끄기</button>
     <button id="close-bgm">닫기</button>
   </div>
@@ -725,6 +727,7 @@ $('dex-btn').addEventListener('click',()=>{ sfx.click(); buildDex(); $('modal').
 $('shop-btn').addEventListener('click',()=>{ sfx.click(); buildShop(); $('shop-modal').classList.add('open'); });
 $('bgm-btn').addEventListener('click',()=>{ sfx.click(); buildBgm(); $('bgm-modal').classList.add('open'); });
 $('bgm-off').addEventListener('click',()=>{ S.bgm=false; unloadBGM(); refreshBgmBtn(); save(); buildBgm(); sfx.click(); });
+$('bgm-retry').addEventListener('click',()=>{ S.bgm=true; ac(); loadBGM(); refreshBgmBtn(); save(); buildBgm(); toast('🎵 재생 시도 중…', '#9ef0ff'); });
 $('close-bgm').addEventListener('click',()=>$('bgm-modal').classList.remove('open'));
 $('bgm-modal').addEventListener('click',e=>{ if(e.target.id==='bgm-modal') e.target.classList.remove('open'); });
 $('close-shop').addEventListener('click',()=>$('shop-modal').classList.remove('open'));
@@ -777,15 +780,52 @@ const BGM_TRACKS=[
   {id:'k7k06zz9L6k', name:'🌳 등화도시 (DP 낮)'},
 ];
 const curTrack=()=> BGM_TRACKS[S.bgmTrack]||BGM_TRACKS[0];
-function loadBGM(){
-  try{
-    const f=$('bgm-frame');
-    const vid=curTrack().id;
-    const src='https://www.youtube-nocookie.com/embed/'+vid+'?autoplay=1&loop=1&playlist='+vid+'&controls=0&disablekb=1&fs=0&rel=0&iv_load_policy=3';
-    if(f.dataset.loaded!==src){ f.src=src; f.dataset.loaded=src; }
-  }catch(e){}
+let ytPlayer=null, ytWanted=false, ytApiLoading=false;
+function ensureApi(){
+  if(window.YT && YT.Player) return true;
+  if(!ytApiLoading){
+    ytApiLoading=true;
+    try{
+      const s=document.createElement('script'); s.id='yt-api';
+      s.src='https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    }catch(e){}
+  }
+  return false;
 }
-function unloadBGM(){ try{ const f=$('bgm-frame'); f.removeAttribute('src'); delete f.dataset.loaded; }catch(e){} }
+function onYouTubeIframeAPIReady(){
+  if(ytWanted && S.bgm!==false) ytStart();
+}
+function loadBGM(){
+  ytWanted=true;
+  if(S.bgm===false) return;
+  if(!ensureApi()) return; // API 로드 후 onYouTubeIframeAPIReady에서 계속
+  ytStart();
+}
+function ytStart(){
+  const id=curTrack().id;
+  try{
+    if(!ytPlayer){
+      ytPlayer=new YT.Player('bgm-player',{
+        height:'2', width:'2', videoId:id,
+        playerVars:{autoplay:1, loop:1, playlist:id, controls:0, disablekb:1, fs:0, rel:0, iv_load_policy:3, playsinline:1},
+        events:{
+          onReady:function(e){ try{ e.target.setLoop(true); e.target.playVideo(); }catch(_){} },
+          onStateChange:function(e){ try{ if(e.data===0) e.target.playVideo(); }catch(_){} },
+          onError:onBgmError
+        }
+      });
+    }else{
+      try{ ytPlayer.loadVideoById(id); }catch(e){ try{ ytPlayer.playVideo(); }catch(_){} }
+    }
+  }catch(e){ toast('🎵 재생 실패 — 크롬/사파리로 직접 열어줘', '#ff8a8a'); }
+}
+function unloadBGM(){ ytWanted=false; try{ if(ytPlayer) ytPlayer.pauseVideo(); }catch(e){} }
+function onBgmError(e){
+  const c=e&&e.data;
+  if(c===101||c===150) toast('⛔ 이 영상은 외부 재생이 막혀있어요', '#ff8a8a');
+  else toast('🎵 재생 오류('+c+') — ▶ 다시 재생을 눌러줘', '#ff8a8a');
+}
 function refreshBgmBtn(){ const b=$('bgm-btn'); if(b) b.textContent=(S.bgm!==false)?('🎵 '+(BGM_TRACKS[S.bgmTrack]||BGM_TRACKS[0]).name.split(' ')[0]+' ON'):'🎵 BGM OFF'; }
 function buildBgm(){
   const w=$('bgm-list'); w.innerHTML='';
