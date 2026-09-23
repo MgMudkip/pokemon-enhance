@@ -165,6 +165,8 @@
   .ach.done{border-color:#5dff8a}
   #close-shop{width:100%;margin-top:10px;min-height:48px;border-radius:12px;border:none;
     background:#ffd76a;font-weight:900;font-size:15px;cursor:pointer}
+  #bgm-wrap{position:fixed;left:0;bottom:0;width:2px;height:2px;overflow:hidden;pointer-events:none;opacity:.01;z-index:1}
+  #bgm-frame{width:100%;height:100%;border:none}
   #income{color:#7dffb2}
   #battle-btn{background:linear-gradient(180deg,#ff7043,#c62828);border:none}
   #battle-modal{position:fixed;inset:0;z-index:70;background:rgba(5,6,20,.78);display:none;
@@ -237,6 +239,7 @@
     <button id="auto-btn">🤖 자동강화 OFF</button>
     <button id="dex-btn">📖 도감·변경</button>
     <button id="shop-btn">🛍 상점</button>
+    <button id="bgm-btn">🎵 BGM ON</button>
     <button id="reset-btn">↻ 초기화</button>
   </div>
 
@@ -250,9 +253,10 @@
   </div>
 
   <div id="log"></div>
-  <footer>💰 초당 자동 수급(접속 종료 후 8시간까지) · 🔥배틀로 승리해야 해금 · +7/+16 진화<br>Space=강화 · H=사냥 · S=판매 · B=배틀 · 모바일 진동·사운드 지원<br>이미지: PokeAPI 공식 아트워크 ©Nintendo/Creatures Inc./GAME FREAK (팬 메이드)</footer>
+  <footer>💰 초당 자동 수급(종료 후 8시간까지) · 🔥배틀 승리=해금 · 🎵BGM 버튼<br>Space=강화 · H=사냥 · S=판매 · B=배틀 · 모바일 진동·사운드 지원<br>이미지: PokeAPI 공식 아트워크 ©Nintendo/Creatures Inc./GAME FREAK · BGM: YouTube(팬 메이드)</footer>
 </div>
 
+<div id="bgm-wrap"><iframe id="bgm-frame" title="bgm" frameborder="0" allow="autoplay; encrypted-media"></iframe></div>
 <div id="fever-banner" style="display:none">🔥 FEVER <b id="fever-t">15</b>s · 성공+12% 사냥×2!</div>
 <div id="toast"></div>
 <div id="flash"></div>
@@ -333,6 +337,8 @@ const MONS = [
   {id:'mew',  evos:['뮤','뮤츠','메가뮤츠Y'], ids:[151,150,10044], base:300, costMul:1.5, bonus:-10,sellMul:2.0, desc:'도박 · 판매 2배 확률↓', type:'에스퍼', unlock:{wins:15}},
   {id:'kyo',  evos:['가이오가','가이오가','원시가이오가'], ids:[382,382,10077], base:800, costMul:2.0, bonus:-5, sellMul:3.0, desc:'전설 · 바다의 제왕', type:'물', unlock:{raid:'kyo'}},
   {id:'gro',  evos:['그란돈','그란돈','원시그란돈'], ids:[383,383,10078], base:800, costMul:2.0, bonus:-5, sellMul:3.0, desc:'전설 · 대지의 제왕', type:'땅', unlock:{raid:'gro'}},
+  {id:'dia',  evos:['디아루가','디아루가','오리진디아루가'], ids:[483,483,10245], base:800, costMul:2.0, bonus:-5, sellMul:3.0, desc:'전설 · 시간의 제왕', type:'강철', unlock:{orb:'dia'}},
+  {id:'pea',  evos:['펄기아','펄기아','오리진펄기아'], ids:[484,484,10246], base:800, costMul:2.0, bonus:-5, sellMul:3.0, desc:'전설 · 공간의 제왕', type:'물', unlock:{orb:'pea'}},
 ];
 
 /* ===== 포켓몬 이미지 (PokeAPI 공식 아트워크, ©Nintendo/Creatures/GAME FREAK) ===== */
@@ -392,7 +398,7 @@ function dropOf(lv){
 const fmt = n => Math.floor(n).toLocaleString('ko-KR');
 
 /* ===== 상태 ===== */
-let S = {money:2000, level:0, monId:'pika', best:0, pity:0, try:0, ok:0, fail:0, dest:0, evo:0, dex:[], combo:0, bestCombo:0, shiny:false, shinyTotal:0, shield:0, boost:0, feverUntil:0, feverCount:0, magnetUntil:0, claimed:[], unlocked:['pika','eve'], wins:0, raidKyo:false, raidGro:false, lastSeen:0};
+let S = {money:2000, level:0, monId:'pika', best:0, pity:0, try:0, ok:0, fail:0, dest:0, evo:0, dex:[], combo:0, bestCombo:0, shiny:false, shinyTotal:0, shield:0, boost:0, feverUntil:0, feverCount:0, magnetUntil:0, claimed:[], unlocked:['pika','eve'], wins:0, raidKyo:false, raidGro:false, lastSeen:0, bgm:true};
 try{
   const raw = localStorage.getItem('pokemon-enhance-save');
   if(raw){ const p=JSON.parse(raw); S = Object.assign(S,p); if(!Array.isArray(S.dex)) S.dex=[]; }
@@ -486,6 +492,7 @@ function render(){
 
   $('money').textContent=fmt(S.money)+'G';
   $('income').textContent='(+'+fmt(incomePerSec())+'/s)';
+  refreshBgmBtn();
   $('best').textContent='+'+S.best;
   $('lv').textContent='+'+lv;
   $('pity').textContent=(S.pity>=2&&lv<MAX_LV)?`(자비 +${pityBonus}%)`:'';
@@ -692,19 +699,20 @@ function setAuto(v){ auto=v; clearInterval(autoTimer);
   $('auto-btn').classList.toggle('on',auto); }
 $('reset-btn').addEventListener('click',()=>{
   if(!confirm('정말 초기화할까요? (골드·강화·도감 전부 리셋)')) return;
-  S={money:2000,level:0,monId:'pika',best:0,pity:0,try:0,ok:0,fail:0,dest:0,evo:0,dex:[],combo:0,bestCombo:0,shiny:false,shinyTotal:0,shield:0,boost:0,feverUntil:0,feverCount:0,magnetUntil:0,claimed:[],unlocked:['pika','eve'],wins:0,raidKyo:false,raidGro:false,lastSeen:0};
+  S={money:2000,level:0,monId:'pika',best:0,pity:0,try:0,ok:0,fail:0,dest:0,evo:0,dex:[],combo:0,bestCombo:0,shiny:false,shinyTotal:0,shield:0,boost:0,feverUntil:0,feverCount:0,magnetUntil:0,claimed:[],unlocked:['pika','eve'],wins:0,raidKyo:false,raidGro:false,lastSeen:0,bgm:true};
   setAuto(false); save(); render(); $('log').innerHTML='';
   log('↻ 초기화 — 2000G 지급!','info'); toast('초기화!', '#fff');
 });
 $('dex-btn').addEventListener('click',()=>{ sfx.click(); buildDex(); $('modal').classList.add('open'); });
 $('shop-btn').addEventListener('click',()=>{ sfx.click(); buildShop(); $('shop-modal').classList.add('open'); });
+$('bgm-btn').addEventListener('click',()=>{ S.bgm=!(S.bgm!==false); if(S.bgm!==false){ ac(); loadBGM(); } else unloadBGM(); refreshBgmBtn(); save(); sfx.click(); });
 $('close-shop').addEventListener('click',()=>$('shop-modal').classList.remove('open'));
 $('shop-modal').addEventListener('click',e=>{ if(e.target.id==='shop-modal') e.target.classList.remove('open'); });
 $('close-modal').addEventListener('click',()=>$('modal').classList.remove('open'));
 $('modal').addEventListener('click',e=>{ if(e.target.id==='modal') e.target.classList.remove('open'); });
 function buildDex(){
   const g=$('mon-grid'); g.innerHTML='';
-  $('dex-title').textContent=`📖 포켓몬 도감 ${S.dex.length}/24`;
+  $('dex-title').textContent=`📖 포켓몬 도감 ${S.dex.length}/30`;
   MONS.forEach(m=>{
     const locked=!S.unlocked.includes(m.id);
     const b=document.createElement('button');
@@ -714,7 +722,7 @@ function buildDex(){
       const got=S.dex.includes(m.id+'-'+i);
       return `<span class="${got?'':'locked'}" title="${got?n:'???'}">${monSVG(m.id,i)}</span>`;
     }).join('');
-    const cond = m.unlock.raid ? `🏆 ${m.unlock.raid==='kyo'?'가이오가':'그란돈'} 레이드 승리 시 해금` : (m.unlock.wins>0?`🔒 배틀 ${m.unlock.wins}승 시 해금 (현재 ${S.wins}승)`:'');
+    const cond = m.unlock.raid ? `🏆 ${m.unlock.raid==='kyo'?'가이오가':'그란돈'} 레이드 승리 시 해금` : m.unlock.orb ? `💎 상점에서 ${m.unlock.orb==='dia'?'🔷 금강옥':'💠 백옥'} 구매 시 해금` : (m.unlock.wins>0?`🔒 배틀 ${m.unlock.wins}승 시 해금 (현재 ${S.wins}승)`:'');
     b.innerHTML=`<div class="e">${locked?'🔒':monSVG(m.id, (m.id===S.monId?stageOf(S.level):2))}</div><b>${locked?'???':m.evos[0]+' 라인'}</b><small>${locked?cond:(m.evos.join(' → ')+`<br>타입 ${m.type} · 비용×${m.costMul} · 성공${m.bonus>=0?'+':''}${m.bonus}% · 판매×${m.sellMul}<br>${m.desc}`)}</small><div class="dex-row">${minis}</div>`;
     b.onclick=()=>{
       if(locked){ toast('🔒 배틀에서 승리해야 해금!', '#ff8a8a'); sfx.click(); return; }
@@ -738,13 +746,27 @@ window.addEventListener('keydown',e=>{
   else if(e.code==='KeyS') doSell();
   else if(e.code==='KeyB') openBattle();
 });
-window.addEventListener('pointerdown',()=>ac(),{once:true});
+window.addEventListener('pointerdown',()=>{ ac(); if(S.bgm!==false) loadBGM(); },{once:true});
+
+/* ===== BGM (유튜브 임베드) ===== */
+const BGM_ID='oyDR98_eTog';
+function loadBGM(){
+  try{
+    const f=$('bgm-frame');
+    const src='https://www.youtube-nocookie.com/embed/'+BGM_ID+'?autoplay=1&loop=1&playlist='+BGM_ID+'&controls=0&disablekb=1&fs=0&rel=0&iv_load_policy=3';
+    if(f.dataset.loaded!==src){ f.src=src; f.dataset.loaded=src; }
+  }catch(e){}
+}
+function unloadBGM(){ try{ const f=$('bgm-frame'); f.removeAttribute('src'); delete f.dataset.loaded; }catch(e){} }
+function refreshBgmBtn(){ const b=$('bgm-btn'); if(b) b.textContent=(S.bgm!==false)?'🎵 BGM ON':'🎵 BGM OFF'; }
 
 /* ===== 상점·업적·FEVER ===== */
 const SHOP=[
   {id:'shield', icon:'🛡', name:'파괴 방어막', desc:'파괴 1회를 -3 하락으로 막아줌', price:()=>2000+S.level*800, buy:()=>{S.shield++;}},
   {id:'boost', icon:'🍀', name:'행운의 부적', desc:'다음 5회 강화 성공 +10%', price:()=>1500, buy:()=>{S.boost+=5;}},
   {id:'magnet', icon:'🧲', name:'골드 자석', desc:'30초간 사냥 보상 2배', price:()=>1000, buy:()=>{S.magnetUntil=Date.now()+30000;}},
+  {id:'orb-dia', icon:'🔷', name:'금강옥', desc:'디아루가 해금! 시간의 구슬', price:()=>50000, buy:()=>{ if(!S.unlocked.includes('dia')){ S.unlocked.push('dia'); sfx.evolve(); confetti(40); log(`🔷 <b>디아루가 해금!</b> 금강옥의 힘!`,'evo'); } }},
+  {id:'orb-pea', icon:'💠', name:'백옥', desc:'펄기아 해금! 공간의 구슬', price:()=>50000, buy:()=>{ if(!S.unlocked.includes('pea')){ S.unlocked.push('pea'); sfx.evolve(); confetti(40); log(`💠 <b>펄기아 해금!</b> 백옥의 힘!`,'evo'); } }},
 ];
 const ACH=[
   {id:'try1', name:'첫 강화!', desc:'강화 1회 시도', gold:500, ok:()=>S.try>=1},
@@ -755,14 +777,16 @@ const ACH=[
   {id:'c5', name:'콤보 x5', desc:'5연속 성공', gold:3000, ok:()=>S.bestCombo>=5},
   {id:'c10', name:'콤보 마스터', desc:'10연속 성공', gold:12000, ok:()=>S.bestCombo>=10},
   {id:'shiny', name:'✦ 이로치 발견!', desc:'색이 다른 포켓몬 발견', gold:5000, ok:()=>S.shinyTotal>0},
-  {id:'dex12', name:'도감 절반', desc:'12종 등록', gold:6000, ok:()=>S.dex.length>=12},
-  {id:'dex24', name:'도감 완성!', desc:'24종 모두 등록', gold:25000, ok:()=>S.dex.length>=24},
+  {id:'dex15', name:'도감 절반', desc:'15종 등록', gold:8000, ok:()=>S.dex.length>=15},
+  {id:'dex30', name:'도감 완성!', desc:'30종 모두 등록', gold:30000, ok:()=>S.dex.length>=30},
   {id:'rich', name:'큰손', desc:'보유 골드 10만', gold:5000, ok:()=>S.money>=100000},
   {id:'fever3', name:'행운아', desc:'FEVER 3회 경험', gold:4000, ok:()=>S.feverCount>=3},
   {id:'win1', name:'첫 승리!', desc:'배틀 첫 승리', gold:1000, ok:()=>S.wins>=1},
   {id:'win10', name:'아레나 스타', desc:'배틀 10승', gold:6000, ok:()=>S.wins>=10},
   {id:'rk', name:'해일의 주인', desc:'가이오가 레이드 처치', gold:15000, ok:()=>S.raidKyo},
   {id:'rg', name:'대지의 주인', desc:'그란돈 레이드 처치', gold:20000, ok:()=>S.raidGro},
+  {id:'orbD', name:'시간의 주인', desc:'금강옥 구매', gold:8000, ok:()=>S.unlocked.includes('dia')},
+  {id:'orbP', name:'공간의 주인', desc:'백옥 구매', gold:8000, ok:()=>S.unlocked.includes('pea')},
 ];
 function feverActive(){ return Date.now()<S.feverUntil; }
 function magnetActive(){ return Date.now()<S.magnetUntil; }
@@ -799,10 +823,14 @@ function buildShop(){
   const w=$('shop-items'); w.innerHTML='';
   SHOP.forEach(it=>{
     const price=it.price();
-    const owned = it.id==='shield'?`보유 ${S.shield}개` : it.id==='boost'?`보유 ${S.boost}회` : magnetActive()?`가동 중 ${Math.ceil((S.magnetUntil-Date.now())/1000)}초`:'미보유';
+    const isOrb = it.id==='orb-dia'||it.id==='orb-pea';
+    const orbDone = (it.id==='orb-dia'&&S.unlocked.includes('dia'))||(it.id==='orb-pea'&&S.unlocked.includes('pea'));
+    const owned = isOrb ? (orbDone?'✅ 해금 완료':(it.id==='orb-dia'?'디아루가 해금':'펄기아 해금')) : it.id==='shield'?`보유 ${S.shield}개` : it.id==='boost'?`보유 ${S.boost}회` : magnetActive()?`가동 중 ${Math.ceil((S.magnetUntil-Date.now())/1000)}초`:'미보유';
     const b=document.createElement('button'); b.className='shop-item';
+    b.disabled=!!orbDone;
     b.innerHTML=`<div class="si">${it.icon}</div><div style="flex:1;text-align:left"><b>${it.name}</b><small>${it.desc}<br>${owned}</small></div><b class="gold">${fmt(price)}G</b>`;
     b.onclick=()=>{
+      if(orbDone) return;
       const p=it.price();
       if(S.money<p){ toast('💰 골드 부족!', '#ff8a8a'); sfx.click(); return; }
       S.money-=p; it.buy(); sfx.buy(); buzz(25);
@@ -833,9 +861,9 @@ function checkAch(){
 }
 
 /* ===== 배틀 (상성·스킬·레이드·해금) ===== */
-const CHART={불:{풀:2,물:.5,불:.5},물:{불:2,땅:2,풀:.5,물:.5},풀:{물:2,불:.5,풀:.5},전기:{물:2,땅:.5,전기:.5},땅:{전기:2,불:2,풀:.5},에스퍼:{에스퍼:.5},노말:{}};
+const CHART={불:{풀:2,물:.5,불:.5,강철:2},물:{불:2,땅:2,풀:.5,물:.5},풀:{물:2,불:.5,풀:.5,강철:.5},전기:{물:2,땅:.5,전기:.5},땅:{전기:2,불:2,풀:.5,강철:2},에스퍼:{에스퍼:.5,강철:.5},노말:{강철:.5},강철:{전기:2,에스퍼:2}};
 const typeMult=(a,d)=> (CHART[a]&&CHART[a][d]!=null)?CHART[a][d]:1;
-const TYPE_COL={불:'#ff7043',물:'#4fa3ff',풀:'#66bb6a',전기:'#ffca28',땅:'#c8955c',에스퍼:'#ba68c8',노말:'#9e9e9e'};
+const TYPE_COL={불:'#ff7043',물:'#4fa3ff',풀:'#66bb6a',전기:'#ffca28',땅:'#c8955c',에스퍼:'#ba68c8',노말:'#9e9e9e',강철:'#90a4ae'};
 const WILD=[
   {id:16,n:'구구',t:'노말'},{id:19,n:'꼬렛',t:'노말'},{id:129,n:'잉어킹',t:'물'},
   {id:54,n:'고라파덕',t:'물'},{id:58,n:'가디',t:'불'},{id:74,n:'꼬마돌',t:'땅'},
@@ -942,6 +970,11 @@ function endBattle(win){
     if(B.e.raid==='kyo' && !S.unlocked.includes('kyo')){ S.unlocked.push('kyo'); S.raidKyo=true; extra+=`🌊 <b>가이오가 해금!</b> 도감에서 선택 가능!<br>`; log(`🌊 <b>가이오가 해금!</b> 레이드 처치!`,'evo'); }
     if(B.e.raid==='gro' && !S.unlocked.includes('gro')){ S.unlocked.push('gro'); S.raidGro=true; extra+=`🌋 <b>그란돈 해금!</b> 도감에서 선택 가능!<br>`; log(`🌋 <b>그란돈 해금!</b> 레이드 처치!`,'evo'); }
     extra+=checkUnlocks();
+    if(B.e.raid && !S.shiny && Math.random()<0.10){
+      S.shiny=true; S.shinyTotal++; sfx.shinyS(); buzz([30,30,60]); confetti(30);
+      extra+=`✦ <b>이로치!</b> 색이 다른 ${curName()} 등장! 판매가 2.5배<br>`;
+      log(`✦ <b>이로치!</b> ${B.e.n} 레이드에서 색이 다른 ${curName()} 획득!`,'evo');
+    }
     $('br-text').innerHTML=`🎉 승리! <span class="gold">+${fmt(g)}G</span> (통산 ${S.wins}승)<br>${extra}`;
     log(`⚔️ 배틀 승리 (${B.e.n}) <span class="gold">+${fmt(g)}G</span>`,'ok');
     render(); checkAch();
