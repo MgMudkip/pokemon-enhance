@@ -86,8 +86,8 @@
   .btn-row button small{display:block;font-size:11px;font-weight:600;opacity:.85}
   #hunt-btn{background:linear-gradient(180deg,#3ddc84,#0e9f5b);border:none;color:#062b1a}
   #sell-btn{background:linear-gradient(180deg,#6aa8ff,#2b5bd7);border:none}
-  .util-row{display:flex;gap:8px}
-  .util-row button{flex:1;min-height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.15);
+  .util-row{display:flex;gap:8px;flex-wrap:wrap}
+  .util-row button{flex:1 1 30%;min-height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.15);
     background:rgba(0,0,0,.3);color:#dfe3ff;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation}
   .util-row button.on{background:#7c5cff;color:#fff;border-color:#7c5cff}
   .util-row button:active{transform:scale(.97)}
@@ -139,6 +139,32 @@
   .dex-row span.locked{filter:brightness(0);opacity:.5}
   #close-modal{width:100%;margin-top:10px;min-height:48px;border-radius:12px;border:none;
     background:#ffd76a;font-weight:900;font-size:15px;cursor:pointer}
+  #badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:6px;min-height:4px}
+  .badge{font-size:12px;font-weight:800;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.2);
+    border-radius:999px;padding:3px 10px}
+  .badge.fever{background:linear-gradient(90deg,#ff5252,#ffb300);color:#fff;border:none;animation:feverPulse .6s infinite}
+  @keyframes feverPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  .badge.combo{background:rgba(124,92,255,.35);border-color:#7c5cff}
+  .badge.shiny{background:linear-gradient(90deg,#fff6b7,#ffd76a);color:#5c3a00;border:none}
+  #mon.shiny img{filter:saturate(1.8) hue-rotate(-30deg) drop-shadow(0 0 18px gold)}
+  #fever-banner{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:65;
+    background:linear-gradient(90deg,#ff5252,#ffb300);font-weight:900;font-size:14px;border-radius:999px;
+    padding:8px 18px;box-shadow:0 4px 18px rgba(255,80,40,.6);white-space:nowrap;animation:feverPulse .6s infinite}
+  #shop-modal{position:fixed;inset:0;z-index:70;background:rgba(5,6,20,.75);display:none;
+    align-items:center;justify-content:center;padding:18px}
+  #shop-modal.open{display:flex}
+  .shop-item{width:100%;display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:10px;color:#fff;cursor:pointer;
+    touch-action:manipulation;margin-bottom:8px}
+  .shop-item:active{transform:scale(.98)}
+  .shop-item .si{font-size:32px}
+  .shop-item b{font-size:14px}.shop-item small{display:block;font-size:11px;color:#aab1e6;font-weight:400}
+  .ach{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:12px;
+    padding:8px 10px;font-size:13px;margin-bottom:6px}
+  .ach small{display:block;font-size:11px;color:#aab1e6}
+  .ach.done{border-color:#5dff8a}
+  #close-shop{width:100%;margin-top:10px;min-height:48px;border-radius:12px;border:none;
+    background:#ffd76a;font-weight:900;font-size:15px;cursor:pointer}
   footer{font-size:11px;color:#7c83b8;text-align:center;line-height:1.6}
   @media (min-width:520px){ #mon{width:190px;height:190px} .stage{height:210px} }
 </style>
@@ -157,6 +183,7 @@
     <div class="evo-line" id="evo-line"></div>
     <div class="cp" id="cp">CP 120</div>
     <div><span class="evo-hint" id="evo-hint"></span></div>
+    <div id="badges"></div>
     <div class="stage">
       <div class="aura" id="aura"></div>
       <div id="mon"></div>
@@ -181,6 +208,7 @@
   <div class="util-row">
     <button id="auto-btn">🤖 자동강화 OFF</button>
     <button id="dex-btn">📖 도감·변경</button>
+    <button id="shop-btn">🛍 상점</button>
     <button id="reset-btn">↻ 초기화</button>
   </div>
 
@@ -196,6 +224,7 @@
   <footer>+7 1차 진화 · +16 2차 진화 · 진화하면 CP×·판매가↑ · 도감 18종 수집<br>Space=강화 · H=사냥 · S=판매 · 모바일 진동·사운드 지원<br>이미지: PokeAPI 공식 아트워크 ©Nintendo/Creatures Inc./GAME FREAK (팬 메이드)</footer>
 </div>
 
+<div id="fever-banner" style="display:none">🔥 FEVER <b id="fever-t">15</b>s · 성공+12% 사냥×2!</div>
 <div id="toast"></div>
 <div id="flash"></div>
 
@@ -203,6 +232,17 @@
   <div class="evo-msg" id="evo-msg">어라…?</div>
   <div id="evo-flash"><div id="evo-big"></div></div>
   <div class="evo-name" id="evo-name"></div>
+</div>
+
+<div id="shop-modal">
+  <div class="sheet">
+    <h2>🛍 상점</h2>
+    <p>보유 <b id="shop-money" class="gold"></b> · 탭해서 구매!</p>
+    <div id="shop-items"></div>
+    <h2 style="margin-top:12px">🏆 업적 <small style="color:#aab1e6;font-weight:400">(자동 수령)</small></h2>
+    <div id="ach-list"></div>
+    <button id="close-shop">닫기</button>
+  </div>
 </div>
 
 <div id="modal">
@@ -271,9 +311,13 @@ function auraColor(lv){
   return 'radial-gradient(circle,#ffffff22 0%,transparent 70%)';
 }
 const costOf = (lv,m)=> Math.floor((100 + lv*120) * Math.pow(1.32, lv) * m.costMul);
-const sellOf = (lv,m)=> lv<=0 ? 50 : Math.floor((200*Math.pow(1.55,lv) + lv*200) * m.sellMul * EVO_SELL[stageOf(lv)]);
+const sellOf = (lv,m)=> lv<=0 ? 50 : Math.floor((200*Math.pow(1.55,lv) + lv*200) * m.sellMul * EVO_SELL[stageOf(lv)] * (S.shiny?2.5:1) * (1+Math.min(S.combo,20)*0.02));
 const cpOf   = (lv,m)=> Math.floor(m.base * Math.pow(1.55, lv) * EVO_MULT[stageOf(lv)] + lv*15);
-const probOf = (lv,m,pity)=> lv>=MAX_LV?0:Math.max(1,Math.min(100, SUCCESS[lv]+m.bonus+pity));
+const probOf = (lv,m,pity)=>{
+  if(lv>=MAX_LV) return 0;
+  const p = SUCCESS[lv]+m.bonus+pity + Math.min(S.combo,10) + (S.boost>0?10:0) + (feverActive()?12:0);
+  return Math.max(1,Math.min(100,p));
+};
 function destroyProb(lv){
   if(lv<=15) return 0;
   const t={16:2,17:3,18:4,19:5,20:6,21:8,22:10,23:13,24:16,25:18,26:20,27:22,28:25,29:30};
@@ -288,7 +332,7 @@ function dropOf(lv){
 const fmt = n => Math.floor(n).toLocaleString('ko-KR');
 
 /* ===== 상태 ===== */
-let S = {money:2000, level:0, monId:'pika', best:0, pity:0, try:0, ok:0, fail:0, dest:0, evo:0, dex:[]};
+let S = {money:2000, level:0, monId:'pika', best:0, pity:0, try:0, ok:0, fail:0, dest:0, evo:0, dex:[], combo:0, bestCombo:0, shiny:false, shinyTotal:0, shield:0, boost:0, feverUntil:0, feverCount:0, magnetUntil:0, claimed:[]};
 try{
   const raw = localStorage.getItem('pokemon-enhance-save');
   if(raw){ const p=JSON.parse(raw); S = Object.assign(S,p); if(!Array.isArray(S.dex)) S.dex=[]; }
@@ -327,6 +371,11 @@ const sfx={
   destroy(){ tone(400,.6,'sawtooth',.25,40); tone(90,.7,'square',.2,30,.1); },
   sell(){ [660,880,1320].forEach((f,i)=>tone(f,.12,'square',.16,null,i*.06)); },
   hunt(){ tone(500+Math.random()*400,.09,'triangle',.16,900); },
+  crit(){ [784,988,1175,1568].forEach((f,i)=>tone(f,.14,'square',.2,null,i*.05)); },
+  fever(){ [523,659,784,1046,784,1046,1318].forEach((f,i)=>tone(f,.15,'sawtooth',.16,null,i*.08)); },
+  shinyS(){ [1568,2093,2637].forEach((f,i)=>tone(f,.2,'sine',.2,null,i*.09)); },
+  buy(){ tone(880,.08,'square',.16); tone(1320,.12,'square',.16,null,.07); },
+  ach(){ [659,784,988,1318].forEach((f,i)=>tone(f,.16,'triangle',.2,null,i*.08)); },
   evolve(){ [392,523,659,784,1046,1318,1568].forEach((f,i)=>tone(f,.22,'triangle',.2,null,i*.11)); },
   max(){ [1046,1318,1568,2093].forEach((f,i)=>tone(f,.2,'triangle',.2,null,i*.09)); },
 };
@@ -376,7 +425,7 @@ function render(){
   $('best').textContent='+'+S.best;
   $('lv').textContent='+'+lv;
   $('pity').textContent=(S.pity>=2&&lv<MAX_LV)?`(자비 +${pityBonus}%)`:'';
-  $('mon-name').textContent=`No.${String(m.ids[st]).padStart(3,'0')} ${curName()}`+(lv>=30?' · MAX':'')+`  [${st+1}단계]`;
+  $('mon-name').textContent=`No.${String(m.ids[st]).padStart(3,'0')} ${curName()}${S.shiny?' ✦':''}`+(lv>=30?' · MAX':'')+`  [${st+1}단계]`;
   $('evo-line').innerHTML = m.evos.map((n,i)=> i===st?`<b>${n}</b>`:`${n}`).join(' → ');
   $('cp').textContent=`CP ${fmt(cpOf(lv,m))} · ${m.desc} · 진화보정 ×${EVO_MULT[st]}`;
   const hint=$('evo-hint');
@@ -386,6 +435,8 @@ function render(){
     hint.className='evo-hint';
   }else{ hint.textContent='🌟 최종 진화 달성!'; hint.className='evo-hint max'; }
   $('mon').innerHTML=monSVG(m.id, st);
+  $('mon').classList.toggle('shiny', !!S.shiny);
+  renderBadges();
   const rb=$('rank'); rb.textContent=(lv>=30?'👑 ':'')+r.n+' · +'+lv;
   rb.style.color=r.c; rb.style.borderColor=r.c; rb.style.background=r.bg;
   $('aura').style.background=auraColor(lv);
@@ -451,9 +502,20 @@ function doEnhance(){
     const el=$('mon');
     if(roll<p){
       const oldSt=stageOf(lv);
-      S.level=Math.min(MAX_LV,lv+1); S.ok++; S.pity=0;
+      if(S.boost>0) S.boost--;
+      const critCh = feverActive()?0.24:0.12;
+      const jump = (Math.random()<critCh && lv+2<=MAX_LV) ? 2 : 1;
+      const isCrit = jump===2;
+      S.level=Math.min(MAX_LV,lv+jump); S.ok++; S.pity=0;
+      S.combo++; if(S.combo>S.bestCombo) S.bestCombo=S.combo;
       if(S.level>S.best) S.best=S.level;
       const newSt=stageOf(S.level);
+      if(isCrit){ sfx.crit(); buzz([40,40,80]); confetti(25); }
+      if(Math.random()<0.03 && !S.shiny){
+        S.shiny=true; S.shinyTotal++; sfx.shinyS(); buzz([30,30,60]);
+        log(`<span class="evo">✦ <b>이로치!</b> 색이 다른 ${curName()} 등장! 판매가 2.5배</span>`,'evo');
+        toast('✦ 이로치!!', '#ffe45e'); confetti(30);
+      }
       discover(m.id, newSt);
       el.classList.remove('jump'); void el.offsetWidth; el.classList.add('jump','boost');
       setTimeout(()=>el.classList.remove('boost'),300);
@@ -462,7 +524,7 @@ function doEnhance(){
       if(newSt>oldSt){
         // 진화!
         S.evo++;
-        busy=false; render();
+        busy=false; render(); checkAch();
         log(`<span class="ok">✔ +${lv} → +${S.level} 성공</span> <span class="gold">(-${fmt(cost)}G)</span>`, 'ok');
         log(`<span class="evo">✨ ${m.evos[oldSt]} → ${m.evos[newSt]} 진화! CP×${EVO_MULT[newSt]}</span>`, 'evo');
         toast(`✨ 진화! ${m.evos[newSt]}!`, '#e040fb');
@@ -472,8 +534,8 @@ function doEnhance(){
         });
         return;
       }
-      toast(S.level>=30?'👑 MAX!!!':`성공! +${S.level}`,'#5dff8a');
-      floatTxt(`+${S.level} 성공!`,'#5dff8a');
+      toast(S.level>=30?'👑 MAX!!!':isCrit?`💥 대박! +${S.level}`:`성공! +${S.level}`, isCrit?'#ffe45e':'#5dff8a');
+      floatTxt(isCrit?`+${jump} 크리티컬!`:`+${S.level} 성공!`, isCrit?'#ffe45e':'#5dff8a');
       log(`<span class="ok">✔ +${lv} → +${S.level} 성공</span> <span class="gold">(-${fmt(cost)}G)</span>`, 'ok');
       if(S.level>=10) confetti(Math.min(40,8+S.level));
       if(S.level===30){ sfx.max(); confetti(60); log('👑 <b>아르세우스급 달성!</b> 전설이다!','gold'); }
@@ -481,16 +543,26 @@ function doEnhance(){
       const dp=destroyProb(lv);
       const droll=Math.random()*100;
       if(droll<dp){
-        S.level=0; S.fail++; S.dest++; S.pity=0;
+        if(S.shield>0){
+          S.shield--; S.fail++; S.pity++; S.combo=0;
+          S.level=Math.max(0,lv-3);
+          sfx.buy(); buzz(80);
+          toast('🛡 방어막 발동! -3', '#7dffb2');
+          floatTxt('방어막!', '#7dffb2');
+          log(`🛡 <b>파괴 방어막 발동!</b> +${lv} → +${S.level} (-3으로 경감)`, 'info');
+        }else{
+        S.level=0; S.fail++; S.dest++; S.pity=0; S.combo=0; S.shiny=false;
         el.classList.remove('break-anim'); void el.offsetWidth; el.classList.add('break-anim');
         flash('#ff0000',.55); sfx.destroy(); buzz([100,60,120]);
         toast('💥 파괴... 0강', '#ff3b3b');
         floatTxt('파괴됨...','#ff3b3b');
         log(`<span class="dest">💥 +${lv} 파괴 → +0 (${m.evos[0]}로)</span> (파괴 ${dp}%)`, 'dest');
+        }
       }else{
         const drop=dropOf(lv);
         const oldSt=stageOf(lv);
         S.level=Math.max(0,lv-drop); S.fail++; S.pity++;
+        if(drop>0) S.combo=0;
         const newSt=stageOf(S.level);
         flash('#331111',.4); sfx.fail(); buzz(60);
         toast(drop===0?'실패 (유지)':`실패 -${drop}`, '#ff7b7b');
@@ -499,7 +571,8 @@ function doEnhance(){
         if(newSt<oldSt) log(`⬇ ${m.evos[oldSt]} → ${m.evos[newSt]} 퇴화…`, 'fail');
       }
     }
-    busy=false; render();
+    if(!feverActive() && Math.random()<0.07) startFever();
+    busy=false; render(); checkAch();
   },380);
 }
 function doHunt(){
@@ -507,12 +580,14 @@ function doHunt(){
   ac();
   const lv=S.level;
   const base=80+lv*25+Math.random()*(50+lv*10);
-  const crit=Math.random()<0.1;
-  const gain=Math.floor(base*(crit?3:1));
+  const crit=Math.random()<(feverActive()?0.2:0.1);
+  let gain=Math.floor(base*(crit?3:1));
+  if(feverActive()) gain*=2;
+  if(magnetActive()) gain*=2;
   S.money+=gain; sfx.hunt(); buzz(crit?50:15);
   floatTxt((crit?'✨대박 +':' +')+fmt(gain)+'G', crit?'#ffe45e':'#9ef0ff');
   if(crit) log(`⚔️ 사냥 <b>대박!</b> <span class="gold">+${fmt(gain)}G</span>`,'gold');
-  render();
+  render(); checkAch();
 }
 function doSell(){
   if(evoPlaying) return;
@@ -522,9 +597,9 @@ function doSell(){
   const price=sellOf(lv,m);
   S.money+=price;
   log(`💸 ${curName()} +${lv} 판매 <span class="gold">+${fmt(price)}G</span> → +0`, 'info');
-  S.level=0; S.pity=0; sfx.sell(); buzz(30);
+  S.level=0; S.pity=0; S.combo=0; S.shiny=false; sfx.sell(); buzz(30);
   toast(`+${fmt(price)}G!`, '#ffd76a'); flash('#448aff',.3);
-  render();
+  render(); checkAch();
 }
 
 /* ===== 이벤트 ===== */
@@ -552,11 +627,14 @@ function setAuto(v){ auto=v; clearInterval(autoTimer);
   $('auto-btn').classList.toggle('on',auto); }
 $('reset-btn').addEventListener('click',()=>{
   if(!confirm('정말 초기화할까요? (골드·강화·도감 전부 리셋)')) return;
-  S={money:2000,level:0,monId:'pika',best:0,pity:0,try:0,ok:0,fail:0,dest:0,evo:0,dex:[]};
+  S={money:2000,level:0,monId:'pika',best:0,pity:0,try:0,ok:0,fail:0,dest:0,evo:0,dex:[],combo:0,bestCombo:0,shiny:false,shinyTotal:0,shield:0,boost:0,feverUntil:0,feverCount:0,magnetUntil:0,claimed:[]};
   setAuto(false); save(); render(); $('log').innerHTML='';
   log('↻ 초기화 — 2000G 지급!','info'); toast('초기화!', '#fff');
 });
 $('dex-btn').addEventListener('click',()=>{ sfx.click(); buildDex(); $('modal').classList.add('open'); });
+$('shop-btn').addEventListener('click',()=>{ sfx.click(); buildShop(); $('shop-modal').classList.add('open'); });
+$('close-shop').addEventListener('click',()=>$('shop-modal').classList.remove('open'));
+$('shop-modal').addEventListener('click',e=>{ if(e.target.id==='shop-modal') e.target.classList.remove('open'); });
 $('close-modal').addEventListener('click',()=>$('modal').classList.remove('open'));
 $('modal').addEventListener('click',e=>{ if(e.target.id==='modal') e.target.classList.remove('open'); });
 function buildDex(){
@@ -583,6 +661,7 @@ function buildDex(){
 }
 window.addEventListener('keydown',e=>{
   if($('modal').classList.contains('open')){ if(e.key==='Escape') $('modal').classList.remove('open'); return; }
+  if($('shop-modal').classList.contains('open')){ if(e.key==='Escape') $('shop-modal').classList.remove('open'); return; }
   if($('evo-overlay').classList.contains('open')) return;
   if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); doEnhance(); }
   else if(e.code==='KeyH') doHunt();
@@ -590,11 +669,95 @@ window.addEventListener('keydown',e=>{
 });
 window.addEventListener('pointerdown',()=>ac(),{once:true});
 
+/* ===== 상점·업적·FEVER ===== */
+const SHOP=[
+  {id:'shield', icon:'🛡', name:'파괴 방어막', desc:'파괴 1회를 -3 하락으로 막아줌', price:()=>2000+S.level*800, buy:()=>{S.shield++;}},
+  {id:'boost', icon:'🍀', name:'행운의 부적', desc:'다음 5회 강화 성공 +10%', price:()=>1500, buy:()=>{S.boost+=5;}},
+  {id:'magnet', icon:'🧲', name:'골드 자석', desc:'30초간 사냥 보상 2배', price:()=>1000, buy:()=>{S.magnetUntil=Date.now()+30000;}},
+];
+const ACH=[
+  {id:'try1', name:'첫 강화!', desc:'강화 1회 시도', gold:500, ok:()=>S.try>=1},
+  {id:'evo1', name:'진화의 시작', desc:'첫 진화 달성', gold:2000, ok:()=>S.evo>=1},
+  {id:'evof', name:'최종 진화!', desc:'2단계 진화 달성', gold:10000, ok:()=>MONS.some(m=>S.dex.includes(m.id+'-2'))},
+  {id:'p15', name:'강자의 길', desc:'+15 달성', gold:8000, ok:()=>S.best>=15},
+  {id:'p25', name:'전설을 향해', desc:'+25 달성', gold:30000, ok:()=>S.best>=25},
+  {id:'c5', name:'콤보 x5', desc:'5연속 성공', gold:3000, ok:()=>S.bestCombo>=5},
+  {id:'c10', name:'콤보 마스터', desc:'10연속 성공', gold:12000, ok:()=>S.bestCombo>=10},
+  {id:'shiny', name:'✦ 이로치 발견!', desc:'색이 다른 포켓몬 발견', gold:5000, ok:()=>S.shinyTotal>0},
+  {id:'dex9', name:'도감 절반', desc:'9종 등록', gold:5000, ok:()=>S.dex.length>=9},
+  {id:'dex18', name:'도감 완성!', desc:'18종 모두 등록', gold:25000, ok:()=>S.dex.length>=18},
+  {id:'rich', name:'큰손', desc:'보유 골드 10만', gold:5000, ok:()=>S.money>=100000},
+  {id:'fever3', name:'행운아', desc:'FEVER 3회 경험', gold:4000, ok:()=>S.feverCount>=3},
+];
+function feverActive(){ return Date.now()<S.feverUntil; }
+function magnetActive(){ return Date.now()<S.magnetUntil; }
+function startFever(){
+  S.feverUntil=Date.now()+15000; S.feverCount++;
+  sfx.fever(); buzz([50,50,80]); flash('#ffea00',.4);
+  log('🔥 <b>FEVER 타임!</b> 15초간 성공+12%·사냥×2·크리율 2배','gold');
+}
+function renderBadges(){
+  const el=$('badges'); if(!el) return;
+  const out=[];
+  if(feverActive()) out.push(`<span class="badge fever">🔥 FEVER ${Math.ceil((S.feverUntil-Date.now())/1000)}s</span>`);
+  if(S.combo>=2) out.push(`<span class="badge combo">🔗 콤보 x${S.combo} (성공+${Math.min(S.combo,10)}%)</span>`);
+  if(S.shield>0) out.push(`<span class="badge">🛡 x${S.shield}</span>`);
+  if(S.boost>0) out.push(`<span class="badge">🍀 x${S.boost}</span>`);
+  if(magnetActive()) out.push(`<span class="badge">🧲 ${Math.ceil((S.magnetUntil-Date.now())/1000)}s</span>`);
+  if(S.shiny) out.push(`<span class="badge shiny">✦ 이로치 (판매 2.5배!)</span>`);
+  el.innerHTML=out.join('');
+}
+function tick(){
+  const b=$('fever-banner');
+  if(feverActive()){ b.style.display='block'; $('fever-t').textContent=Math.ceil((S.feverUntil-Date.now())/1000); }
+  else if(b.style.display!=='none'){ b.style.display='none'; render(); }
+  renderBadges();
+}
+setInterval(tick,500);
+function buildShop(){
+  $('shop-money').textContent=fmt(S.money)+'G';
+  const w=$('shop-items'); w.innerHTML='';
+  SHOP.forEach(it=>{
+    const price=it.price();
+    const owned = it.id==='shield'?`보유 ${S.shield}개` : it.id==='boost'?`보유 ${S.boost}회` : magnetActive()?`가동 중 ${Math.ceil((S.magnetUntil-Date.now())/1000)}초`:'미보유';
+    const b=document.createElement('button'); b.className='shop-item';
+    b.innerHTML=`<div class="si">${it.icon}</div><div style="flex:1;text-align:left"><b>${it.name}</b><small>${it.desc}<br>${owned}</small></div><b class="gold">${fmt(price)}G</b>`;
+    b.onclick=()=>{
+      const p=it.price();
+      if(S.money<p){ toast('💰 골드 부족!', '#ff8a8a'); sfx.click(); return; }
+      S.money-=p; it.buy(); sfx.buy(); buzz(25);
+      toast(`${it.icon} 구매!`, '#ffd76a'); log(`🛍 ${it.name} 구매 <span class="gold">(-${fmt(p)}G)</span>`,'info');
+      buildShop(); render();
+    };
+    w.appendChild(b);
+  });
+  const al=$('ach-list'); al.innerHTML='';
+  ACH.forEach(a=>{
+    const got=S.claimed.includes(a.id);
+    const d=document.createElement('div'); d.className='ach'+(got?' done':'');
+    d.innerHTML=`<div>${got?'✅':'🔒'} <b>${a.name}</b><small>${a.desc} · 보상 ${fmt(a.gold)}G</small></div>`;
+    al.appendChild(d);
+  });
+}
+function checkAch(){
+  ACH.forEach(a=>{
+    if(!S.claimed.includes(a.id) && a.ok()){
+      S.claimed.push(a.id); S.money+=a.gold;
+      sfx.ach(); buzz([40,40,80]); confetti(20);
+      toast(`🏆 ${a.name} +${fmt(a.gold)}G`, '#ffd76a');
+      log(`🏆 업적 달성: <b>${a.name}</b> <span class="gold">+${fmt(a.gold)}G</span>`,'gold');
+      render();
+    }
+  });
+  save();
+}
+
 /* ===== 부트 ===== */
 discover(S.monId, stageOf(S.level));
 log('🎮 <b>포켓몬 강화하기</b> 진화 시스템 가동!','gold');
 log('✨ <b>+7에서 1차 진화, +16에서 최종 진화!</b> 진화하면 CP·판매가↑','evo');
 log('🔨 실패 하락 · 16강부터 파괴 · <b>사냥(H)</b>으로 파밍','info');
+log('🔥 랜덤 <b>FEVER</b> · 💥 크리티컬 · ✦ <b>이로치</b> · 🔗 콤보 · 🛍 상점·🏆업적 추가!','evo');
 render();
 </script>
 </body>
