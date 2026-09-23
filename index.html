@@ -531,7 +531,6 @@ function playEvolution(mid, fromSt, toSt, done){
   const ov=$('evo-overlay'), big=$('evo-big'), msg=$('evo-msg'), nm=$('evo-name');
   ov.classList.add('open');
   big.innerHTML=monSVG(mid, fromSt);
-  $('evo-big').parentElement.id='evo-flash';
   msg.textContent='어라…? 상태가 이상하다…!';
   nm.textContent='';
   sfx.enhance(); buzz([60,60,60]);
@@ -830,6 +829,9 @@ function checkAch(){
       render();
     }
   });
+  save();
+}
+
 /* ===== 배틀 (상성·스킬·레이드·해금) ===== */
 const CHART={불:{풀:2,물:.5,불:.5},물:{불:2,땅:2,풀:.5,물:.5},풀:{물:2,불:.5,풀:.5},전기:{물:2,땅:.5,전기:.5},땅:{전기:2,불:2,풀:.5},에스퍼:{에스퍼:.5},노말:{}};
 const typeMult=(a,d)=> (CHART[a]&&CHART[a][d]!=null)?CHART[a][d]:1;
